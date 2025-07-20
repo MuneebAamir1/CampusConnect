@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Connect - My Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary-accent: #506b56;
+            --color-secondary-accent: #8c4f4f;
+            --color-dark-bg: #1a1c20;
+            --color-card-bg: #282a2e;
+            --color-text-light: #e0e0e0;
+            --color-text-muted: #a0a0a0;
+            --color-input-bg: #3b3e44;
+            --color-border-color: #4a4e55;
+            --color-button-hover: #405c48; /* Darker primary for hover */
+            --color-secondary-button-hover: #7a4242; /* Darker secondary for hover */
+        }
+
+        html {
+            --tw-bg-primary-accent: var(--color-primary-accent);
+            --tw-bg-secondary-accent: var(--color-secondary-accent);
+            --tw-bg-dark-bg: var(--color-dark-bg);
+            --tw-bg-card-bg: var(--color-card-bg);
+            --tw-text-text-light: var(--color-text-light);
+            --tw-text-text-muted: var(--color-text-muted);
+            --tw-bg-input-bg: var(--color-input-bg);
+            --tw-border-border-color: var(--color-border-color);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        /* Basic fade-in animation for the card */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-[var(--color-card-bg)] p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-2xl border border-[var(--color-border-color)] animate-fade-in">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[var(--color-primary-accent)]">My Profile</h1>
+            <a href="chat.html" class="text-[var(--color-text-muted)] hover:text-[var(--color-primary-accent)] transition duration-200 text-sm flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+                Back to Chat
+            </a>
+        </div>
+
+        <!-- Profile Picture Section -->
+        <div class="flex flex-col items-center mb-8">
+            <img id="profile-pic-preview" src="https://placehold.co/120x120/506b56/FFFFFF?text=U" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-[var(--color-primary-accent)] shadow-lg mb-4">
+            <input type="file" id="profile-pic-upload" class="hidden" accept="image/*">
+            <button id="upload-pic-button" class="bg-[var(--color-secondary-accent)] hover:bg-[var(--color-secondary-button-hover)] text-white py-2 px-4 rounded-lg text-sm transition duration-300">
+                Upload New Picture
+            </button>
+            <p class="text-[var(--color-text-muted)] text-xs mt-2">Note: Image upload functionality is for demonstration. Actual storage not implemented yet.</p>
+        </div>
+
+        <!-- Notification Message Area -->
+        <div id="message-area" class="mb-4 text-center text-sm font-medium"></div>
+
+        <!-- Profile Form -->
+        <form id="profile-form" class="space-y-6">
+            <div>
+                <label for="fullName" class="block text-sm font-medium text-[var(--color-text-muted)]">Full Name</label>
+                <input type="text" id="fullName" name="fullName" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="username" class="block text-sm font-medium text-[var(--color-text-muted)]">Username</label>
+                <input type="text" id="username" name="username" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-[var(--color-text-muted)]">NUTECH Email</label>
+                <input type="email" id="email" name="email" required readonly
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-muted)] cursor-not-allowed">
+                <p class="text-xs text-[var(--color-text-muted)] mt-1">Email cannot be changed after registration.</p>
+            </div>
+            <div>
+                <label for="bio" class="block text-sm font-medium text-[var(--color-text-muted)]">Bio</label>
+                <textarea id="bio" name="bio" rows="4"
+                          class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200"
+                          placeholder="Tell us a little about yourself..."></textarea>
+            </div>
+            <button type="submit"
+                    class="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-semibold text-white bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-card-bg)] transition duration-300 transform hover:scale-105">
+                Save Changes
+            </button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const profileForm = document.getElementById('profile-form');
+            const fullNameInput = document.getElementById('fullName');
+            const usernameInput = document.getElementById('username');
+            const emailInput = document.getElementById('email');
+            const bioTextarea = document.getElementById('bio');
+            const profilePicPreview = document.getElementById('profile-pic-preview');
+            const uploadPicButton = document.getElementById('upload-pic-button');
+            const profilePicUploadInput = document.getElementById('profile-pic-upload');
+            const messageArea = document.getElementById('message-area');
+
+            let currentUser = null; // Will store the logged-in user object
+
+            // Function to display messages
+            function showMessage(message, type = 'success') {
+                messageArea.textContent = message;
+                if (type === 'success') {
+                    messageArea.className = 'mb-4 text-center text-sm font-medium text-green-500';
+                } else if (type === 'error') {
+                    messageArea.className = 'mb-4 text-center text-sm font-medium text-red-500';
+                } else {
+                    messageArea.className = 'mb-4 text-center text-sm font-medium text-blue-500'; // Info
+                }
+            }
+
+            // --- Enforce Login/Fetch User Data ---
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    currentUser = JSON.parse(storedUser);
+                    // Fetch full profile data from backend to ensure it's up-to-date
+                    await fetchUserProfile(currentUser.id);
+                } catch (e) {
+                    console.error('Error parsing stored user data or fetching profile, redirecting to login:', e);
+                    window.location.replace('form.html');
+                    return;
+                }
+            } else {
+                console.log('No user logged in. Redirecting to form.html');
+                window.location.replace('form.html');
+                return;
+            }
+
+            async function fetchUserProfile(userId) {
+                showMessage('Loading profile...', 'info');
+                try {
+                    const response = await fetch(`http://localhost:3000/api/profile/${userId}`);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        currentUser = data; // Update currentUser with fresh data from backend
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser)); // Update localStorage
+                        populateProfileForm(currentUser);
+                        showMessage('Profile loaded successfully!', 'success');
+                    } else {
+                        showMessage(data.message || 'Failed to load profile.', 'error');
+                        // Optionally redirect to login if profile cannot be loaded
+                        // setTimeout(() => window.location.replace('form.html'), 2000);
+                    }
+                } catch (error) {
+                    console.error('Error fetching profile:', error);
+                    showMessage('Network error or server unavailable. Failed to load profile.', 'error');
+                    // setTimeout(() => window.location.replace('form.html'), 2000);
+                }
+            }
+
+            function populateProfileForm(user) {
+                fullNameInput.value = user.fullName || '';
+                usernameInput.value = user.username || '';
+                emailInput.value = user.email || '';
+                bioTextarea.value = user.bio || '';
+                if (user.profilePicUrl) {
+                    profilePicPreview.src = user.profilePicUrl;
+                } else {
+                    profilePicPreview.src = `https://placehold.co/120x120/506b56/FFFFFF?text=${(user.username || 'U').charAt(0).toUpperCase()}`;
+                }
+            }
+
+            // --- Handle Profile Update Submission ---
+            profileForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (!currentUser || !currentUser.id) {
+                    showMessage('No user logged in. Please log in first.', 'error');
+                    return;
+                }
+
+                const updatedData = {
+                    userId: currentUser.id, // Send the user ID for identification
+                    fullName: fullNameInput.value,
+                    username: usernameInput.value,
+                    // Email is readonly, so we don't send it for update here
+                    bio: bioTextarea.value,
+                    // profilePicUrl will be handled separately if actual upload is implemented
+                };
+
+                // If username was changed, include it
+                if (usernameInput.value !== currentUser.username) {
+                    updatedData.username = usernameInput.value;
+                }
+
+                showMessage('Saving changes...', 'info');
+
+                try {
+                    const response = await fetch('http://localhost:3000/api/profile/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updatedData),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(data.message, 'success');
+                        // Update currentUser and localStorage with the new data from the server
+                        currentUser = data.user;
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        populateProfileForm(currentUser); // Re-populate to reflect any server-side changes/defaults
+                    } else {
+                        showMessage(data.message || 'Failed to save changes. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error during profile update fetch:', error);
+                    showMessage('Network error or server unavailable. Failed to save changes.', 'error');
+                }
+            });
+
+            // --- Profile Picture Upload (Client-side preview only for now) ---
+            uploadPicButton.addEventListener('click', () => {
+                profilePicUploadInput.click(); // Trigger the hidden file input click
+            });
+
+            profilePicUploadInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        profilePicPreview.src = e.target.result;
+                        // In a real app, you would upload this image to a storage service (e.g., Cloudinary, AWS S3)
+                        // and then send the resulting URL to your backend to save in profilePicUrl.
+                        // For now, this is just a client-side preview.
+                        showMessage('Image preview updated. Remember to implement actual image upload to server.', 'info');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

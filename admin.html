@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Connect - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary-accent: #506b56;
+            --color-secondary-accent: #8c4f4f;
+            --color-dark-bg: #1a1c20;
+            --color-card-bg: #282a2e;
+            --color-text-light: #e0e0e0;
+            --color-text-muted: #a0a0a0;
+            --color-input-bg: #3b3e44;
+            --color-border-color: #4a4e55;
+            --color-button-hover: #405c48; /* Darker primary for hover */
+            --color-secondary-button-hover: #7a4242; /* Darker secondary for hover */
+            --color-red-danger: #dc2626; /* Tailwind red-600 */
+            --color-red-danger-hover: #b91c1c; /* Tailwind red-700 */
+            --color-green-success: #22c55e; /* Tailwind green-500 */
+            --color-green-success-hover: #16a34a; /* Tailwind green-600 */
+        }
+
+        html {
+            --tw-bg-primary-accent: var(--color-primary-accent);
+            --tw-bg-secondary-accent: var(--color-secondary-accent);
+            --tw-bg-dark-bg: var(--color-dark-bg);
+            --tw-bg-card-bg: var(--color-card-bg);
+            --tw-text-text-light: var(--color-text-light);
+            --tw-text-text-muted: var(--color-text-muted);
+            --tw-bg-input-bg: var(--color-input-bg);
+            --tw-border-border-color: var(--color-border-color);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Align to top for content */
+            padding: 2rem;
+        }
+
+        /* Basic fade-in animation for the card */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .table-header th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            border-bottom: 1px solid var(--color-border-color);
+        }
+
+        .table-row td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--color-border-color);
+            vertical-align: top; /* Align content to top */
+        }
+        .table-row:last-child td {
+            border-bottom: none; /* No border for the last row */
+        }
+    </style>
+</head>
+<body>
+    <div id="admin-login-section" class="bg-[var(--color-card-bg)] p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-[var(--color-border-color)] animate-fade-in">
+        <h1 class="text-3xl sm:text-4xl font-bold text-[var(--color-primary-accent)] text-center mb-8">Admin Login</h1>
+        <div id="login-message-area" class="mb-4 text-center text-sm font-medium"></div>
+        <form id="admin-login-form" class="space-y-6">
+            <div>
+                <label for="admin-username" class="block text-sm font-medium text-[var(--color-text-muted)]">Username</label>
+                <input type="text" id="admin-username" name="username" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="admin-password" class="block text-sm font-medium text-[var(--color-text-muted)]">Password</label>
+                <input type="password" id="admin-password" name="password" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <button type="submit"
+                    class="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-semibold text-white bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-card-bg)] transition duration-300 transform hover:scale-105">
+                Login
+            </button>
+        </form>
+    </div>
+
+    <div id="admin-dashboard-section" class="hidden bg-[var(--color-card-bg)] p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-4xl border border-[var(--color-border-color)] mt-8 animate-fade-in">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[var(--color-primary-accent)]">Admin Dashboard</h1>
+            <button id="admin-logout-button" class="py-2 px-4 rounded-lg text-red-400 hover:bg-[var(--color-input-bg)] transition duration-200">Logout</button>
+        </div>
+
+        <!-- Room Creation Section -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-[var(--color-text-light)] mb-4">Create New Room</h2>
+            <div id="create-room-message-area" class="mb-4 text-center text-sm font-medium"></div>
+            <form id="create-room-form" class="flex flex-col sm:flex-row gap-4">
+                <input type="text" id="new-room-name" placeholder="New Room Name (e.g., Batch 2025)" required
+                       class="flex-grow p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+                <select id="new-room-type" class="p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+                    <option value="public">Public (Open to all)</option>
+                    <option value="private">Private (Requires approval)</option>
+                </select>
+                <button type="submit"
+                        class="py-3 px-6 rounded-lg shadow-sm text-lg font-semibold text-white bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-300 transform hover:scale-105">
+                    Create Room
+                </button>
+            </form>
+        </section>
+
+        <!-- Existing Rooms Section -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-[var(--color-text-light)] mb-4">Manage Existing Rooms</h2>
+            <div id="manage-rooms-message-area" class="mb-4 text-center text-sm font-medium"></div>
+            <div class="overflow-x-auto rounded-lg border border-[var(--color-border-color)]">
+                <table class="min-w-full divide-y divide-[var(--color-border-color)]">
+                    <thead class="bg-[var(--color-input-bg)]">
+                        <tr class="table-header">
+                            <th>Room Name</th>
+                            <th>Type</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="existing-rooms-tbody" class="divide-y divide-[var(--color-border-color)]">
+                        <!-- Existing rooms will be loaded here -->
+                        <tr>
+                            <td colspan="4" class="text-center text-[var(--color-text-muted)] py-4">Loading rooms...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button id="refresh-rooms-button" class="mt-4 py-2 px-4 rounded-lg bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] text-white text-sm transition duration-200">
+                Refresh Room List
+            </button>
+        </section>
+
+        <!-- User Management Section -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-[var(--color-text-light)] mb-4">Manage Users</h2>
+            <div id="manage-users-message-area" class="mb-4 text-center text-sm font-medium"></div>
+            <div class="overflow-x-auto rounded-lg border border-[var(--color-border-color)]">
+                <table class="min-w-full divide-y divide-[var(--color-border-color)]">
+                    <thead class="bg-[var(--color-input-bg)]">
+                        <tr class="table-header">
+                            <th>Username (Email)</th>
+                            <th>Full Name</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody" class="divide-y divide-[var(--color-border-color)]">
+                        <!-- Users will be loaded here -->
+                        <tr>
+                            <td colspan="4" class="text-center text-[var(--color-text-muted)] py-4">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button id="refresh-users-button" class="mt-4 py-2 px-4 rounded-lg bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] text-white text-sm transition duration-200">
+                Refresh User List
+            </button>
+        </section>
+
+
+        <!-- Room Join Requests Section -->
+        <section>
+            <h2 class="text-2xl font-semibold text-[var(--color-text-light)] mb-4">Pending Room Join Requests</h2>
+            <div id="requests-message-area" class="mb-4 text-center text-sm font-medium"></div>
+            <div class="overflow-x-auto rounded-lg border border-[var(--color-border-color)]">
+                <table class="min-w-full divide-y divide-[var(--color-border-color)]">
+                    <thead class="bg-[var(--color-input-bg)]">
+                        <tr class="table-header">
+                            <th>User</th>
+                            <th>Room</th>
+                            <th>Requested At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="room-requests-tbody" class="divide-y divide-[var(--color-border-color)]">
+                        <!-- Requests will be loaded here -->
+                        <tr>
+                            <td colspan="4" class="text-center text-[var(--color-text-muted)] py-4">No pending requests.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button id="refresh-requests-button" class="mt-4 py-2 px-4 rounded-lg bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] text-white text-sm transition duration-200">
+                Refresh Requests
+            </button>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const adminLoginSection = document.getElementById('admin-login-section');
+            const adminDashboardSection = document.getElementById('admin-dashboard-section');
+            const adminLoginForm = document.getElementById('admin-login-form');
+            const loginMessageArea = document.getElementById('login-message-area');
+            const adminLogoutButton = document.getElementById('admin-logout-button');
+            const createRoomForm = document.getElementById('create-room-form');
+            const newRoomNameInput = document.getElementById('new-room-name');
+            const newRoomTypeSelect = document.getElementById('new-room-type');
+            const createRoomMessageArea = document.getElementById('create-room-message-area');
+            const roomRequestsTbody = document.getElementById('room-requests-tbody');
+            const requestsMessageArea = document.getElementById('requests-message-area');
+            const existingRoomsTbody = document.getElementById('existing-rooms-tbody');
+            const manageRoomsMessageArea = document.getElementById('manage-rooms-message-area');
+            const refreshRoomsButton = document.getElementById('refresh-rooms-button');
+            const refreshRequestsButton = document.getElementById('refresh-requests-button');
+            const usersTbody = document.getElementById('users-tbody');
+            const manageUsersMessageArea = document.getElementById('manage-users-message-area');
+            const refreshUsersButton = document.getElementById('refresh-users-button');
+
+
+            let adminToken = localStorage.getItem('adminToken');
+
+            // Function to display messages
+            function showMessage(element, message, type = 'success') {
+                element.textContent = message;
+                if (type === 'success') {
+                    element.className = 'mb-4 text-center text-sm font-medium text-green-500';
+                } else if (type === 'error') {
+                    element.className = 'mb-4 text-center text-sm font-medium text-red-500';
+                } else {
+                    element.className = 'mb-4 text-center text-sm font-medium text-blue-500'; // Info
+                }
+            }
+
+            // --- Admin Login/Logout Logic ---
+            const checkAdminAuth = async () => {
+                if (adminToken) {
+                    adminLoginSection.classList.add('hidden');
+                    adminDashboardSection.classList.remove('hidden');
+                    await fetchRoomRequests();
+                    await fetchAndRenderRoomsAdmin(); // Fetch rooms for admin panel
+                    await fetchAndRenderUsersAdmin(); // Fetch users for admin panel
+                } else {
+                    adminLoginSection.classList.remove('hidden');
+                    adminDashboardSection.classList.add('hidden');
+                }
+            };
+
+            adminLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('admin-username').value;
+                const password = document.getElementById('admin-password').value;
+
+                showMessage(loginMessageArea, 'Logging in...', 'info');
+
+                try {
+                    const response = await fetch('http://localhost:3000/api/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        adminToken = data.token; // Store the token (for future use, not fully implemented auth)
+                        localStorage.setItem('adminToken', adminToken);
+                        showMessage(loginMessageArea, data.message, 'success');
+                        setTimeout(checkAdminAuth, 500); // Redirect to dashboard
+                    } else {
+                        showMessage(loginMessageArea, data.message || 'Login failed.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Admin login error:', error);
+                    showMessage(loginMessageArea, 'Network error or server unavailable.', 'error');
+                }
+            });
+
+            adminLogoutButton.addEventListener('click', () => {
+                localStorage.removeItem('adminToken');
+                adminToken = null;
+                checkAdminAuth();
+                showMessage(loginMessageArea, 'Logged out successfully.', 'info');
+            });
+
+            // --- Room Creation Logic ---
+            createRoomForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const roomName = newRoomNameInput.value.trim();
+                const roomType = newRoomTypeSelect.value;
+
+                if (!adminToken) {
+                    showMessage(createRoomMessageArea, 'Not authenticated as Admin.', 'error');
+                    return;
+                }
+
+                showMessage(createRoomMessageArea, 'Creating room...', 'info');
+
+                try {
+                    const response = await fetch('http://localhost:3000/api/admin/rooms', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}` // Send token for authorization
+                        },
+                        body: JSON.stringify({ name: roomName, type: roomType })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(createRoomMessageArea, data.message, 'success');
+                        newRoomNameInput.value = ''; // Clear input
+                        fetchAndRenderRoomsAdmin(); // Refresh the list of existing rooms
+                    } else {
+                        showMessage(createRoomMessageArea, data.message || 'Failed to create room.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Create room error:', error);
+                    showMessage(createRoomMessageArea, 'Network error or server unavailable.', 'error');
+                }
+            });
+
+            // --- Existing Rooms Management Logic ---
+            async function fetchAndRenderRoomsAdmin() {
+                if (!adminToken) return;
+
+                showMessage(manageRoomsMessageArea, 'Fetching rooms...', 'info');
+                try {
+                    const response = await fetch('http://localhost:3000/api/rooms', {
+                        headers: { 'Authorization': `Bearer ${adminToken}` } // Admin token for this endpoint too
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        renderExistingRooms(data.rooms);
+                        showMessage(manageRoomsMessageArea, 'Rooms loaded.', 'success');
+                    } else {
+                        showMessage(manageRoomsMessageArea, data.message || 'Failed to fetch rooms.', 'error');
+                        existingRoomsTbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">${data.message || 'Failed to load rooms.'}</td></tr>`;
+                    }
+                } catch (error) {
+                    console.error('Fetch rooms error:', error);
+                    showMessage(manageRoomsMessageArea, 'Network error or server unavailable.', 'error');
+                    existingRoomsTbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">Network error or server unavailable.</td></tr>`;
+                }
+            }
+
+            function renderExistingRooms(rooms) {
+                existingRoomsTbody.innerHTML = ''; // Clear existing rows
+                if (rooms.length === 0) {
+                    existingRoomsTbody.innerHTML = `<tr><td colspan="4" class="text-center text-[var(--color-text-muted)] py-4">No rooms created yet.</td></tr>`;
+                    return;
+                }
+
+                rooms.forEach(room => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    const isDeletable = room.name !== 'General Chat' && room.name !== 'Confession Wall';
+                    row.innerHTML = `
+                        <td># ${room.name}</td>
+                        <td>${room.type.charAt(0).toUpperCase() + room.type.slice(1)}</td>
+                        <td>${new Date(room.createdAt).toLocaleString()}</td>
+                        <td>
+                            ${isDeletable ? `
+                                <button class="py-1 px-3 rounded-lg bg-[var(--color-red-danger)] hover:bg-[var(--color-red-danger-hover)] text-white text-sm transition duration-200"
+                                        data-action="delete-room" data-room-name="${room.name}">
+                                    Delete
+                                </button>
+                            ` : `<span class="text-[var(--color-text-muted)] text-xs">Default Room</span>`}
+                        </td>
+                    `;
+                    existingRoomsTbody.appendChild(row);
+                });
+
+                // Add event listeners to new delete buttons
+                existingRoomsTbody.querySelectorAll('button[data-action="delete-room"]').forEach(button => {
+                    button.addEventListener('click', handleDeleteRoom);
+                });
+            }
+
+            async function handleDeleteRoom(event) {
+                const button = event.target;
+                const roomName = button.dataset.roomName;
+
+                if (!confirm(`Are you sure you want to delete room "${roomName}"? This action cannot be undone.`)) {
+                    return; // User cancelled
+                }
+
+                showMessage(manageRoomsMessageArea, `Deleting room "${roomName}"...`, 'info');
+
+                try {
+                    const response = await fetch(`http://localhost:3000/api/admin/rooms/${roomName}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${adminToken}` }
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(manageRoomsMessageArea, data.message, 'success');
+                        fetchAndRenderRoomsAdmin(); // Refresh list
+                    } else {
+                        showMessage(manageRoomsMessageArea, data.message || `Failed to delete room "${roomName}".`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Delete room error:', error);
+                    showMessage(manageRoomsMessageArea, 'Network error or server unavailable.', 'error');
+                }
+            }
+
+            refreshRoomsButton.addEventListener('click', fetchAndRenderRoomsAdmin);
+
+            // --- User Management Logic ---
+            async function fetchAndRenderUsersAdmin() {
+                if (!adminToken) return;
+
+                showMessage(manageUsersMessageArea, 'Fetching users...', 'info');
+                try {
+                    const response = await fetch('http://localhost:3000/api/admin/users', {
+                        headers: { 'Authorization': `Bearer ${adminToken}` }
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        renderUsers(data.users);
+                        showMessage(manageUsersMessageArea, 'Users loaded.', 'success');
+                    } else {
+                        showMessage(manageUsersMessageArea, data.message || 'Failed to fetch users.', 'error');
+                        usersTbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">${data.message || 'Failed to load users.'}</td></tr>`;
+                    }
+                } catch (error) {
+                    console.error('Fetch users error:', error);
+                    showMessage(manageUsersMessageArea, 'Network error or server unavailable.', 'error');
+                    usersTbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">Network error or server unavailable.</td></tr>`;
+                }
+            }
+
+            function renderUsers(users) {
+                usersTbody.innerHTML = ''; // Clear existing rows
+                if (users.length === 0) {
+                    usersTbody.innerHTML = `<tr><td colspan="4" class="text-center text-[var(--color-text-muted)] py-4">No users registered yet.</td></tr>`;
+                    return;
+                }
+
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    const isBanned = user.isBanned;
+                    row.innerHTML = `
+                        <td>${user.username} (${user.email})</td>
+                        <td>${user.fullName}</td>
+                        <td class="${isBanned ? 'text-red-400' : 'text-green-400'}">${isBanned ? 'Banned' : 'Active'}</td>
+                        <td>
+                            <div class="flex flex-col gap-2">
+                                <textarea class="p-2 border border-[var(--color-border-color)] rounded-lg bg-[var(--color-input-bg)] text-[var(--color-text-light)] text-sm" placeholder="Reason for ban/unban (optional)" data-user-id="${user._id}"></textarea>
+                                <div class="flex gap-2 mt-1">
+                                    ${isBanned ? `
+                                        <button class="flex-1 py-2 px-4 rounded-lg bg-[var(--color-green-success)] hover:bg-[var(--color-green-success-hover)] text-white text-sm transition duration-200" data-action="unban" data-user-id="${user._id}">Unban</button>
+                                    ` : `
+                                        <button class="flex-1 py-2 px-4 rounded-lg bg-[var(--color-red-danger)] hover:bg-[var(--color-red-danger-hover)] text-white text-sm transition duration-200" data-action="ban" data-user-id="${user._id}">Ban</button>
+                                    `}
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    usersTbody.appendChild(row);
+                });
+
+                // Add event listeners to new ban/unban buttons
+                usersTbody.querySelectorAll('button[data-action="ban"], button[data-action="unban"]').forEach(button => {
+                    button.addEventListener('click', handleUserBanAction);
+                });
+            }
+
+            async function handleUserBanAction(event) {
+                const button = event.target;
+                const action = button.dataset.action; // 'ban' or 'unban'
+                const userId = button.dataset.userId; // Corrected to use _id
+                const reasonTextarea = document.querySelector(`textarea[data-user-id="${userId}"]`);
+                const reason = reasonTextarea ? reasonTextarea.value.trim() : '';
+                const isBanned = (action === 'ban'); // true if banning, false if unbanning
+
+                if (!adminToken) {
+                    showMessage(manageUsersMessageArea, 'Not authenticated as Admin.', 'error');
+                    return;
+                }
+
+                showMessage(manageUsersMessageArea, `${isBanned ? 'Banning' : 'Unbanning'} user...`, 'info');
+
+                try {
+                    const response = await fetch(`http://localhost:3000/api/admin/users/${userId}/ban`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({ isBanned, reason })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(manageUsersMessageArea, data.message, 'success');
+                        fetchAndRenderUsersAdmin(); // Refresh user list
+                    } else {
+                        showMessage(manageUsersMessageArea, data.message || `Failed to ${action} user.`, 'error');
+                    }
+                } catch (error) {
+                    console.error('User ban/unban error:', error);
+                    showMessage(manageUsersMessageArea, 'Network error or server unavailable.', 'error');
+                }
+            }
+
+            refreshUsersButton.addEventListener('click', fetchAndRenderUsersAdmin);
+
+
+            // --- Room Join Requests Logic ---
+            async function fetchRoomRequests() {
+                if (!adminToken) return;
+
+                showMessage(requestsMessageArea, 'Fetching requests...', 'info');
+                try {
+                    const response = await fetch('http://localhost:3000/api/admin/room-requests', {
+                        headers: { 'Authorization': `Bearer ${adminToken}` }
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        renderRoomRequests(data.requests);
+                        showMessage(requestsMessageArea, 'Requests loaded.', 'success');
+                    } else {
+                        showMessage(requestsMessageArea, data.message || 'Failed to fetch requests.', 'error');
+                        roomRequestsTbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">${data.message || 'Failed to load requests.'}</td></tr>`;
+                    }
+                } catch (error) {
+                    console.error('Fetch requests error:', error);
+                    showMessage(requestsMessageArea, 'Network error or server unavailable.', 'error');
+                    roomRequestsTbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">Network error or server unavailable.</td></tr>`;
+                }
+            }
+
+            function renderRoomRequests(requests) {
+                roomRequestsTbody.innerHTML = ''; // Clear existing rows
+                if (requests.length === 0) {
+                    roomRequestsTbody.innerHTML = `<tr><td colspan="4" class="text-center text-[var(--color-text-muted)] py-4">No pending requests.</td></tr>`;
+                    return;
+                }
+
+                requests.forEach(request => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                        <td>${request.username} (${request.userEmail})</td>
+                        <td>${request.roomName}</td>
+                        <td>${new Date(request.requestedAt).toLocaleString()}</td>
+                        <td>
+                            <div class="flex flex-col gap-2">
+                                <textarea class="p-2 border border-[var(--color-border-color)] rounded-lg bg-[var(--color-input-bg)] text-[var(--color-text-light)] text-sm" placeholder="Reason for rejection (optional)" data-request-id="${request._id}"></textarea>
+                                <div class="flex gap-2 mt-1">
+                                    <button class="flex-1 py-2 px-4 rounded-lg bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] text-white text-sm transition duration-200" data-action="approve" data-request-id="${request._id}">Approve</button>
+                                    <button class="flex-1 py-2 px-4 rounded-lg bg-[var(--color-red-danger)] hover:bg-[var(--color-red-danger-hover)] text-white text-sm transition duration-200" data-action="reject" data-request-id="${request._id}">Reject</button>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    roomRequestsTbody.appendChild(row);
+                });
+
+                // Add event listeners to new buttons
+                roomRequestsTbody.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', handleRequestAction);
+                });
+            }
+
+            async function handleRequestAction(event) {
+                const button = event.target;
+                const action = button.dataset.action;
+                const requestId = button.dataset.requestId;
+                const reasonTextarea = document.querySelector(`textarea[data-request-id="${requestId}"]`);
+                const reason = reasonTextarea ? reasonTextarea.value.trim() : '';
+
+                if (!adminToken) {
+                    showMessage(requestsMessageArea, 'Not authenticated as Admin.', 'error');
+                    return;
+                }
+
+                showMessage(requestsMessageArea, `${action === 'approve' ? 'Approving' : 'Rejecting'} request...`, 'info');
+
+                try {
+                    const response = await fetch(`http://localhost:3000/api/admin/room-requests/${requestId}/action`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({ action, reason })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(requestsMessageArea, data.message, 'success');
+                        fetchRoomRequests(); // Refresh list
+                    } else {
+                        showMessage(requestsMessageArea, data.message || `Failed to ${action} request.`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Request action error:', error);
+                    showMessage(requestsMessageArea, 'Network error or server unavailable.', 'error');
+                }
+            }
+
+            refreshRequestsButton.addEventListener('click', fetchRoomRequests);
+
+            // Initial check on page load
+            checkAdminAuth();
+        });
+    </script>
+</body>
+</html>

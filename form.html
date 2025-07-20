@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Connect - Login / Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary-accent: #506b56;
+            --color-secondary-accent: #8c4f4f;
+            --color-dark-bg: #1a1c20;
+            --color-card-bg: #282a2e;
+            --color-text-light: #e0e0e0;
+            --color-text-muted: #a0a0a0;
+            --color-input-bg: #3b3e44;
+            --color-border-color: #4a4e55;
+            --color-button-hover: #405c48; /* Darker primary for hover */
+            --color-secondary-button-hover: #7a4242; /* Darker secondary for hover */
+        }
+
+        html {
+            --tw-bg-primary-accent: var(--color-primary-accent);
+            --tw-bg-secondary-accent: var(--color-secondary-accent);
+            --tw-bg-dark-bg: var(--color-dark-bg);
+            --tw-bg-card-bg: var(--color-card-bg);
+            --tw-text-text-light: var(--color-text-light);
+            --tw-text-text-muted: var(--color-text-muted);
+            --tw-bg-input-bg: var(--color-input-bg);
+            --tw-border-border-color: var(--color-border-color);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Basic fade-in animation for the card */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-dark-bg)] text-[var(--color-text-light)] min-h-screen flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-[var(--color-card-bg)] p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-[var(--color-border-color)] animate-fade-in">
+        <div class="flex justify-center mb-8">
+            <h1 id="form-title" class="text-3xl sm:text-4xl font-bold text-[var(--color-primary-accent)]">Login</h1>
+        </div>
+
+        <!-- Notification Message Area -->
+        <div id="message-area" class="mb-4 text-center text-sm font-medium"></div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="space-y-6">
+            <div>
+                <label for="login-identifier" class="block text-sm font-medium text-[var(--color-text-muted)]">Username or Email</label>
+                <input type="text" id="login-identifier" name="identifier" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="login-password" class="block text-sm font-medium text-[var(--color-text-muted)]">Password</label>
+                <input type="password" id="login-password" name="password" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <button type="submit"
+                    class="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-semibold text-white bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-card-bg)] transition duration-300 transform hover:scale-105">
+                Login
+            </button>
+        </form>
+
+        <!-- Registration Form (initially hidden) -->
+        <form id="register-form" class="space-y-6 hidden">
+            <div>
+                <label for="register-fullname" class="block text-sm font-medium text-[var(--color-text-muted)]">Full Name</label>
+                <input type="text" id="register-fullname" name="fullName" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="register-username" class="block text-sm font-medium text-[var(--color-text-muted)]">Username</label>
+                <input type="text" id="register-username" name="username" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="register-email" class="block text-sm font-medium text-[var(--color-text-muted)]">NUTECH Email (@nutech.edu.pk)</label>
+                <input type="email" id="register-email" name="email" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <div>
+                <label for="register-password" class="block text-sm font-medium text-[var(--color-text-muted)]">Password</label>
+                <input type="password" id="register-password" name="password" required
+                       class="mt-1 block w-full p-3 border border-[var(--color-border-color)] rounded-lg shadow-sm bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200">
+            </div>
+            <button type="submit"
+                    class="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-semibold text-white bg-[var(--color-secondary-accent)] hover:bg-[var(--color-secondary-button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-card-bg)] transition duration-300 transform hover:scale-105">
+                Register
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p id="toggle-text" class="text-[var(--color-text-muted)]">Don't have an account?
+                <a href="#" id="toggle-form" class="font-medium text-[var(--color-primary-accent)] hover:text-[var(--color-secondary-accent)] transition duration-200">Register here</a>
+            </p>
+        </div>
+
+        <!-- Back to Policies link -->
+        <div class="mt-8 text-center">
+            <a href="policy.html" class="text-[var(--color-text-muted)] hover:text-[var(--color-primary-accent)] transition duration-200 text-sm">
+                View Privacy Policy & Terms
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const formTitle = document.getElementById('form-title');
+            const toggleFormLink = document.getElementById('toggle-form');
+            const toggleText = document.getElementById('toggle-text');
+            const messageArea = document.getElementById('message-area');
+
+            // Function to display messages
+            function showMessage(message, type = 'success') {
+                messageArea.textContent = message;
+                if (type === 'success') {
+                    messageArea.className = 'mb-4 text-center text-sm font-medium text-green-500';
+                } else if (type === 'error') {
+                    messageArea.className = 'mb-4 text-center text-sm font-medium text-red-500';
+                } else {
+                    messageArea.className = 'mb-4 text-center text-sm font-medium text-blue-500'; // Info
+                }
+            }
+
+            // Function to switch between login and registration forms
+            toggleFormLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                messageArea.textContent = ''; // Clear messages
+
+                if (loginForm.classList.contains('hidden')) {
+                    // Currently on Register form, switch to Login
+                    loginForm.classList.remove('hidden');
+                    registerForm.classList.add('hidden');
+                    formTitle.textContent = 'Login';
+                    toggleText.innerHTML = `Don't have an account? <a href="#" id="toggle-form-inner" class="font-medium text-[var(--color-primary-accent)] hover:text-[var(--color-secondary-accent)] transition duration-200">Register here</a>`;
+                } else {
+                    // Currently on Login form, switch to Register
+                    loginForm.classList.add('hidden');
+                    registerForm.classList.remove('hidden');
+                    formTitle.textContent = 'Register';
+                    toggleText.innerHTML = `Already have an account? <a href="#" id="toggle-form-inner" class="font-medium text-[var(--color-primary-accent)] hover:text-[var(--color-secondary-accent)] transition duration-200">Login here</a>`;
+                }
+                // Re-attach event listener to the new toggle link (important after innerHTML update)
+                document.getElementById('toggle-form-inner').addEventListener('click', toggleFormLink.listener);
+            });
+            // Store the listener to re-attach it
+            toggleFormLink.listener = toggleFormLink.addEventListener.bind(toggleFormLink); // Bind for re-attachment
+
+            // --- Handle Login Form Submission ---
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Prevent default form submission
+
+                const identifier = document.getElementById('login-identifier').value;
+                const password = document.getElementById('login-password').value;
+
+                showMessage('Logging in...', 'info');
+
+                try {
+                    const response = await fetch('http://localhost:3000/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ identifier, password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(data.message, 'success');
+                        // Store user info (e.g., in localStorage or sessionStorage)
+                        // This is crucial for retrieving user name in chat.html
+                        localStorage.setItem('currentUser', JSON.stringify(data.user));
+                        // Redirect to chat page after a short delay
+                        setTimeout(() => {
+                            window.location.href = 'chat.html';
+                        }, 1500);
+                    } else {
+                        showMessage(data.message || 'Login failed. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error during login fetch:', error);
+                    showMessage('Network error or server unavailable. Please try again later.', 'error');
+                }
+            });
+
+            // --- Handle Registration Form Submission ---
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Prevent default form submission
+
+                const fullName = document.getElementById('register-fullname').value;
+                const username = document.getElementById('register-username').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+
+                // Client-side NUTECH email validation (redundant with backend, but good UX)
+                if (!email.endsWith('@nutech.edu.pk')) {
+                    showMessage('Only NUTECH university emails (@nutech.edu.pk) are allowed for registration.', 'error');
+                    return;
+                }
+
+                showMessage('Registering...', 'info');
+
+                try {
+                    const response = await fetch('http://localhost:3000/api/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ fullName, username, email, password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(data.message + ' Redirecting to login...', 'success');
+                        // Automatically switch to login form after successful registration
+                        setTimeout(() => {
+                            loginForm.classList.remove('hidden');
+                            registerForm.classList.add('hidden');
+                            formTitle.textContent = 'Login';
+                            toggleText.innerHTML = `Don't have an account? <a href="#" id="toggle-form-inner" class="font-medium text-[var(--color-primary-accent)] hover:text-[var(--color-secondary-accent)] transition duration-200">Register here</a>`;
+                            document.getElementById('toggle-form-inner').addEventListener('click', toggleFormLink.listener);
+                            // Optionally pre-fill login identifier with registered email/username
+                            document.getElementById('login-identifier').value = email;
+                        }, 2000);
+                    } else {
+                        showMessage(data.message || 'Registration failed. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error during registration fetch:', error);
+                    showMessage('Network error or server unavailable. Please try again later.', 'error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

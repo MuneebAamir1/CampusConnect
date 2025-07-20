@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Connect - Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary-accent: #506b56;
+            --color-secondary-accent: #8c4f4f;
+            --color-dark-bg: #1a1c20;
+            --color-card-bg: #282a2e;
+            --color-text-light: #e0e0e0;
+            --color-text-muted: #a0a0a0;
+            --color-input-bg: #3b3e44;
+            --color-border-color: #4a4e55;
+            --color-message-own-bg: #506b56; /* Primary accent for own messages */
+            --color-message-other-bg: #3b3e44; /* Input background for other messages */
+            --color-chat-bg: #1a1c20; /* Dark background for chat area */
+            --color-sidebar-bg: #282a2e; /* Card background for sidebar */
+            --color-header-bg: #282a2e; /* Card background for header */
+            --color-request-button: #4a90e2; /* A blue for request button */
+            --color-request-button-hover: #3a7bd5;
+            --color-notification-bg: #3b3e44;
+            --color-notification-border: #4a4e55;
+            --color-banned-overlay-bg: rgba(0, 0, 0, 0.7); /* Dark overlay for banned state */
+        }
+
+        html {
+            --tw-bg-primary-accent: var(--color-primary-accent);
+            --tw-bg-secondary-accent: var(--color-secondary-accent);
+            --tw-bg-dark-bg: var(--color-dark-bg);
+            --tw-bg-card-bg: var(--color-card-bg);
+            --tw-text-text-light: var(--color-text-light);
+            --tw-text-text-muted: var(--color-text-muted);
+            --tw-bg-input-bg: var(--color-input-bg);
+            --tw-border-border-color: var(--color-border-color);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-light);
+            display: flex; /* Make body a flex container */
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll */
+            position: relative; /* For banned overlay positioning */
+        }
+
+        /* Sidebar styles */
+        aside {
+            width: 280px;
+            min-width: 280px;
+            background-color: var(--color-sidebar-bg);
+            border-right: 1px solid var(--color-border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            /* Default for mobile: fixed and hidden */
+            position: fixed;
+            height: 100%;
+            transform: translateX(-100%); /* Hidden by default */
+            transition: transform 0.3s ease-in-out;
+        }
+
+        aside.sidebar-visible {
+            transform: translateX(0);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Main content area */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            /* On mobile, main starts at 0 margin-left */
+            margin-left: 0;
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            aside {
+                position: relative; /* Make it part of the flex flow on desktop */
+                transform: translateX(0) !important; /* Ensure it's visible */
+                box-shadow: none; /* Remove shadow if it slides in/out on mobile */
+            }
+            main {
+                margin-left: 0; /* No margin-left needed if aside is in flex flow */
+            }
+            #menu-toggle {
+                display: none; /* Hide menu button on desktop */
+            }
+        }
+        @media (max-width: 767px) {
+            #menu-toggle {
+                display: block; /* Show menu button on mobile */
+            }
+            /* When sidebar is visible on mobile, push main content */
+            body.sidebar-open main {
+                margin-left: 300px; /* Adjust based on max-width of sidebar (300px from max-width on aside) */
+            }
+        }
+
+
+        /* Chat messages container */
+        #messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: var(--color-chat-bg);
+            border-bottom: 1px solid var(--color-border-color);
+        }
+
+        /* Message bubble styling */
+        .message-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            max-width: 75%;
+            word-wrap: break-word;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .message-own {
+            background-color: var(--color-message-own-bg);
+            color: white;
+            margin-left: auto; /* Align to right */
+        }
+
+        .message-other {
+            background-color: var(--color-message-other-bg);
+            color: var(--color-text-light);
+            margin-right: auto; /* Align to left */
+        }
+
+        .message-username {
+            font-weight: bold;
+            font-size: 0.875rem; /* text-sm */
+            margin-bottom: 0.25rem;
+            opacity: 0.9;
+        }
+
+        .message-time {
+            display: block;
+            font-size: 0.75rem; /* text-xs */
+            text-align: right;
+            margin-top: 0.5rem;
+            opacity: 0.6;
+        }
+
+        /* Animation for new messages */
+        .chat-scroll-animation {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideInMessage 0.3s ease-out forwards;
+        }
+
+        @keyframes slideInMessage {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Notification styles */
+        .notification-item {
+            background-color: var(--color-notification-bg);
+            border: 1px solid var(--color-notification-border);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+        .notification-item.read {
+            opacity: 0.7;
+            background-color: var(--color-input-bg);
+        }
+        .notification-item .close-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 1rem;
+            transition: color 0.2s;
+        }
+        .notification-item .close-btn:hover {
+            color: var(--color-text-light);
+        }
+
+        /* Banned user overlay styles */
+        .banned-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-banned-overlay-bg);
+            backdrop-filter: blur(8px); /* Blurry effect */
+            -webkit-backdrop-filter: blur(8px); /* Safari support */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200; /* Above everything else */
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .banned-overlay h2 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--color-secondary-accent);
+        }
+        .banned-overlay p {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            max-width: 600px;
+        }
+        .banned-overlay a {
+            color: var(--color-primary-accent);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar-hidden md:sidebar-visible">
+        <h2 class="text-2xl font-bold text-[var(--color-primary-accent)] mb-6">Campus Connect</h2>
+        <nav class="flex-grow">
+            <ul id="room-list">
+                <!-- Rooms will be dynamically loaded here by JavaScript -->
+            </ul>
+        </nav>
+        <div class="mt-auto pt-4 border-t border-[var(--color-border-color)]">
+            <a href="profile.html" class="block p-3 rounded-lg hover:bg-[var(--color-input-bg)] transition duration-200">
+                <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 111-4 2 2 0 014 0zm-2 4a4 4 0 00-4 4v2a1 1 0 001 1h8a1 1 0 001-1v-2a4 4 0 00-4-4z" clip-rule="evenodd"></path></svg>
+                My Profile
+            </a>
+            <button id="logout-button" class="w-full text-left p-3 rounded-lg text-red-400 hover:bg-[var(--color-input-bg)] transition duration-200 mt-2">
+                <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"></path></svg>
+                Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Chat Content -->
+    <main class="flex-grow flex flex-col">
+        <!-- Header -->
+        <header class="bg-[var(--color-header-bg)] p-4 flex items-center justify-between border-b border-[var(--color-border-color)]">
+            <button id="menu-toggle" class="md:hidden p-2 rounded-md hover:bg-[var(--color-input-bg)] transition duration-200">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+            </button>
+            <h1 class="text-xl font-semibold text-[var(--color-text-light)] flex-grow text-center md:text-left ml-0 md:ml-4" id="current-room-name">General Chat</h1>
+            <!-- User profile stub -->
+            <div class="flex items-center space-x-2">
+                <img id="user-avatar" src="https://placehold.co/40x40/506b56/FFFFFF?text=U" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-primary-accent)]">
+                <span id="logged-in-username" class="font-medium text-[var(--color-text-light)]">Guest</span>
+            </div>
+        </header>
+
+        <!-- Notifications Area -->
+        <div id="notifications-area" class="p-4 bg-[var(--color-chat-bg)]">
+            <!-- Notifications will be displayed here -->
+        </div>
+
+        <!-- Messages Container -->
+        <div id="messages-container" class="flex-grow overflow-y-auto p-4 space-y-4">
+            <!-- Initial messages (will be replaced by dynamic messages) -->
+            <div class="flex justify-start chat-scroll-animation">
+                <div class="message-bubble message-other">
+                    <p class="message-username text-blue-300">Admin</p>
+                    <p>Welcome to Campus Connect! Please log in or register to join the conversation.</p>
+                    <span class="message-time">10:00 AM</span>
+                </div>
+            </div>
+            <div class="flex justify-start chat-scroll-animation">
+                <div class="message-bubble message-other">
+                    <p class="message-username text-blue-300">Admin</p>
+                    <p>Thanks! This app looks great. Ready to chat!</p>
+                    <span class="message-time">10:01 AM</span>
+                </div>
+            </div>
+            <!-- Dynamic messages will be appended here -->
+        </div>
+
+        <!-- Message Input -->
+        <div class="p-4 bg-[var(--color-header-bg)] border-t border-[var(--color-border-color)] flex items-center">
+            <input type="text" id="message-input" placeholder="Type your message..."
+                   class="flex-grow p-3 rounded-lg border border-[var(--color-border-color)] bg-[var(--color-input-bg)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-accent)] transition duration-200 mr-3">
+            <button id="send-button"
+                    class="bg-[var(--color-primary-accent)] hover:bg-[var(--color-button-hover)] text-white p-3 rounded-lg shadow-md transition duration-300 transform hover:scale-105">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l.684-.227a1 1 0 00.513-.943V13a1 1 0 011-1h1.588a1 1 0 01.894.553l.448.894A1 1 0 0011 15h2a1 1 0 00.894-.553l.448-.894A1 1 0 0115.412 12H17a1 1 0 001-1v-2.588a1 1 0 00-.553-.894l-14-7z"></path></svg>
+            </button>
+        </div>
+    </main>
+
+    <!-- Banned User Overlay -->
+    <div id="banned-overlay" class="banned-overlay hidden">
+        <h2>You are Banned!</h2>
+        <p id="banned-message">Your account has been restricted from using Campus Connect.</p>
+        <p>Please contact the administrator at <a id="contact-email" href="mailto:muneebaamir2006@gmail.com">muneebaamir2006@gmail.com</a> to get unbanned.</p>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const messagesContainer = document.getElementById('messages-container');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const roomList = document.getElementById('room-list');
+            const currentRoomNameDisplay = document.getElementById('current-room-name');
+            const loggedInUsernameDisplay = document.getElementById('logged-in-username');
+            const userAvatar = document.getElementById('user-avatar');
+            const logoutButton = document.getElementById('logout-button');
+            const notificationsArea = document.getElementById('notifications-area');
+            const bannedOverlay = document.getElementById('banned-overlay'); // New
+            const bannedMessage = document.getElementById('banned-message'); // New
+            const contactEmail = document.getElementById('contact-email'); // New
+
+            let currentUser = null;
+            let currentRoom = 'General Chat';
+
+            // Function to display UI messages (for debugging/feedback)
+            function showUIMessage(message, type = 'info') {
+                console.log(`UI Message (${type}): ${message}`);
+            }
+
+            // --- Enforce Login/Registration and Fetch User Data ---
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    currentUser = JSON.parse(storedUser);
+                    loggedInUsernameDisplay.textContent = currentUser.username || currentUser.fullName || 'User';
+                    if (currentUser.profilePicUrl) {
+                        userAvatar.src = currentUser.profilePicUrl;
+                    } else {
+                        userAvatar.src = `https://placehold.co/40x40/506b56/FFFFFF?text=${(currentUser.username || 'U').charAt(0).toUpperCase()}`;
+                    }
+
+                    // Fetch the latest user data from the backend to get updated joinedRooms and ban status
+                    const response = await fetch(`http://localhost:3000/api/profile/${currentUser.id}`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        currentUser = data; // Update currentUser with fresh data from backend
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser)); // Update localStorage
+                        if (currentUser.profilePicUrl) {
+                            userAvatar.src = currentUser.profilePicUrl;
+                        } else {
+                            userAvatar.src = `https://placehold.co/40x40/506b56/FFFFFF?text=${(currentUser.username || 'U').charAt(0).toUpperCase()}`;
+                        }
+
+                        // Check ban status immediately after fetching user data
+                        if (currentUser.isBanned) {
+                            activateBannedMode('Your account has been restricted from using Campus Connect.');
+                            return; // Stop further chat initialization for banned users
+                        }
+
+                    } else {
+                        console.error('Failed to refresh user data:', data.message);
+                        showUIMessage('Failed to refresh user data. Please re-login.', 'error');
+                        window.location.replace('form.html');
+                        return;
+                    }
+
+                } catch (e) {
+                    console.error('Error parsing stored user data or fetching profile, redirecting to login:', e);
+                    window.location.replace('form.html');
+                    return;
+                }
+            } else {
+                console.log('No user logged in. Redirecting to form.html');
+                window.location.replace('form.html');
+                return;
+            }
+
+            // --- Banned Mode Activation ---
+            function activateBannedMode(message) {
+                bannedOverlay.classList.remove('hidden');
+                bannedMessage.textContent = message;
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+                sendButton.classList.add('opacity-50', 'cursor-not-allowed');
+                // Optionally blur the main content if not already done by overlay backdrop-filter
+                document.querySelector('main').style.filter = 'blur(2px)';
+                document.querySelector('aside').style.filter = 'blur(2px)';
+            }
+
+
+            // --- Socket.IO Connection ---
+            const socket = io('http://localhost:3000');
+
+            // Handle initial connection
+            socket.on('connect', () => {
+                console.log('Connected to server with socket ID:', socket.id);
+                // Only join room if not banned
+                if (!currentUser.isBanned) {
+                    socket.emit('joinRoom', currentRoom, currentUser.username, currentUser.id);
+                }
+            });
+
+            // Listen for chat history from the server
+            socket.on('chatHistory', (history) => {
+                messagesContainer.innerHTML = ''; // Clear existing messages
+                history.forEach(message => appendMessage(message));
+            });
+
+            // Listen for new messages from the server
+            socket.on('message', (message) => {
+                if (message.room === currentRoom) {
+                    appendMessage(message);
+                }
+            });
+
+            // Listen for notifications from the server
+            socket.on('notifications', (notifications) => {
+                notifications.forEach(notification => displayNotification(notification));
+            });
+
+            // Listen for 'banned' event from server
+            socket.on('banned', (data) => {
+                console.warn('Received banned event from server:', data.message);
+                activateBannedMode(data.message);
+                // Optionally update contact email if provided
+                if (data.contactEmail) {
+                    contactEmail.href = `mailto:${data.contactEmail}`;
+                    contactEmail.textContent = data.contactEmail;
+                }
+                socket.disconnect(true); // Disconnect the socket as user is banned
+            });
+
+
+            // --- Notification Display Function ---
+            async function displayNotification(notification) {
+                const notificationElement = document.createElement('div');
+                notificationElement.className = 'notification-item flex items-center justify-between p-3 mb-2 rounded-lg bg-[var(--color-notification-bg)] border border-[var(--color-notification-border)]';
+                notificationElement.innerHTML = `
+                    <span>${notification.message}</span>
+                    <button class="close-btn" data-notification-id="${notification._id}">&times;</button>
+                `;
+                notificationsArea.prepend(notificationElement);
+
+                notificationElement.querySelector('.close-btn').addEventListener('click', async () => {
+                    await markNotificationAsRead(notification._id);
+                    notificationElement.remove();
+                });
+            }
+
+            async function markNotificationAsRead(notificationId) {
+                try {
+                    await fetch('http://localhost:3000/api/user/notifications/mark-read', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ notificationId, userId: currentUser.id })
+                    });
+                } catch (error) {
+                    console.error('Error marking notification as read:', error);
+                }
+            }
+
+            // --- Message Appending Function ---
+            function appendMessage(message) {
+                const messageElement = document.createElement('div');
+                const isOwnMessage = currentUser && message.user === currentUser.username;
+
+                messageElement.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-2 chat-scroll-animation`;
+                messageElement.innerHTML = `
+                    <div class="message-bubble ${isOwnMessage ? 'message-own' : 'message-other'}">
+                        <p class="message-username ${isOwnMessage ? '' : 'text-blue-300'}">${message.user}</p>
+                        <p>${message.text}</p>
+                        <span class="message-time">${new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                `;
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // --- Dynamic Room Loading ---
+            async function fetchAndRenderRooms() {
+                try {
+                    const response = await fetch('http://localhost:3000/api/rooms');
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        renderRooms(data.rooms);
+                    } else {
+                        showUIMessage(data.message || 'Failed to fetch rooms.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error fetching rooms:', error);
+                    showUIMessage('Network error or server unavailable. Failed to load rooms.', 'error');
+                }
+            }
+
+            function renderRooms(rooms) {
+                roomList.innerHTML = ''; // Clear existing elements
+
+                rooms.sort((a, b) => {
+                    if (a.type === 'public' && b.type !== 'public') return -1;
+                    if (a.type !== 'public' && b.type === 'public') return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                rooms.forEach(room => {
+                    const isJoined = currentUser.joinedRooms && currentUser.joinedRooms.includes(room.name);
+                    const isPublic = room.type === 'public';
+
+                    const listItem = document.createElement('li');
+                    listItem.className = 'mb-2';
+
+                    let roomHtml = '';
+                    if (isPublic || isJoined) {
+                        roomHtml = `
+                            <a href="#" class="block p-3 rounded-lg hover:bg-[var(--color-input-bg)] transition duration-200 flex items-center"
+                               data-room="${room.name}" data-room-type="${room.type}" data-joined="true">
+                                <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h10v8H5V6z"></path></svg>
+                                # ${room.name}
+                            </a>
+                        `;
+                    } else {
+                        roomHtml = `
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-[var(--color-input-bg)] text-[var(--color-text-muted)]">
+                                <span class="flex items-center">
+                                    <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2V5a3 3 0 10-6 0v2h6z" clip-rule="evenodd"></path></svg>
+                                    # ${room.name}
+                                </span>
+                                <button class="py-1 px-3 rounded-lg bg-[var(--color-request-button)] hover:bg-[var(--color-request-button-hover)] text-white text-xs transition duration-200"
+                                        data-action="request-join" data-room-name="${room.name}">
+                                    Request to Join
+                                </button>
+                            </div>
+                        `;
+                    }
+                    listItem.innerHTML = roomHtml;
+                    roomList.appendChild(listItem);
+                });
+
+                // Re-attach event listeners to new room links
+                roomList.querySelectorAll('a[data-room]').forEach(link => {
+                    link.addEventListener('click', handleRoomClick);
+                });
+                roomList.querySelectorAll('button[data-action="request-join"]').forEach(button => {
+                    button.addEventListener('click', handleRequestJoin);
+                });
+
+                // Set initial active room style
+                const defaultRoomLink = document.querySelector(`a[data-room="${currentRoom}"]`);
+                if (defaultRoomLink) {
+                    defaultRoomLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
+                }
+            }
+
+            async function handleRoomClick(event) {
+                event.preventDefault();
+                const clickedLink = event.currentTarget;
+                const newRoom = clickedLink.dataset.room;
+                const roomType = clickedLink.dataset.roomType;
+                const isJoined = clickedLink.dataset.joined === 'true';
+
+                if (roomType === 'public' || isJoined) {
+                    roomList.querySelectorAll('a[data-room]').forEach(l => l.classList.remove('bg-[var(--color-secondary-accent)]', 'text-white'));
+                    clickedLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
+
+                    if (newRoom !== currentRoom) {
+                        socket.emit('leaveRoom', currentRoom);
+                        socket.emit('joinRoom', newRoom, currentUser.username, currentUser.id);
+                        currentRoom = newRoom;
+                        currentRoomNameDisplay.textContent = newRoom;
+                        messagesContainer.innerHTML = '';
+                    }
+
+                    // Close sidebar on mobile after selection
+                    if (window.innerWidth < 768) {
+                        sidebar.classList.add('sidebar-hidden');
+                        sidebar.classList.remove('sidebar-visible');
+                        document.body.classList.remove('sidebar-open'); // Remove class from body
+                    }
+                } else {
+                    showUIMessage(`You need to request to join "${newRoom}".`, 'info');
+                }
+            }
+
+            async function handleRequestJoin(event) {
+                event.preventDefault();
+                const button = event.currentTarget;
+                const roomName = button.dataset.roomName;
+
+                showUIMessage(`Submitting request for "${roomName}"...`, 'info');
+                try {
+                    const response = await fetch('http://localhost:3000/api/rooms/request-join', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: currentUser.id,
+                            username: currentUser.username,
+                            userEmail: currentUser.email,
+                            roomName: roomName
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showUIMessage(data.message, 'success');
+                        button.textContent = 'Request Sent';
+                        button.disabled = true;
+                        button.classList.remove('bg-[var(--color-request-button)]', 'hover:bg-[var(--color-request-button-hover)]');
+                        button.classList.add('bg-gray-500', 'cursor-not-allowed');
+                    } else {
+                        showUIMessage(data.message || 'Failed to submit request.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Request join error:', error);
+                    showUIMessage('Network error or server unavailable. Failed to submit request.', 'error');
+                }
+            }
+
+
+            // --- Sidebar Toggle for Mobile ---
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('sidebar-hidden');
+                sidebar.classList.toggle('sidebar-visible');
+                document.body.classList.toggle('sidebar-open'); // Toggle class on body
+            });
+
+            // --- Message Sending Logic ---
+            function sendMessage() {
+                // Prevent sending messages if banned
+                if (currentUser.isBanned) {
+                    showUIMessage('You cannot send messages because you are banned.', 'error');
+                    return;
+                }
+
+                const messageText = messageInput.value.trim();
+                if (messageText && currentUser) {
+                    socket.emit('chatMessage', { text: messageText, username: currentUser.username, room: currentRoom, userId: currentUser.id });
+                    messageInput.value = '';
+                }
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+
+            messageInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // --- Logout Functionality ---
+            logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('currentUser');
+                window.location.replace('form.html');
+            });
+
+            // Initial load of rooms (only if not banned)
+            if (!currentUser.isBanned) {
+                await fetchAndRenderRooms();
+
+                // Set initial active room style (after rooms are rendered)
+                const defaultRoomLink = document.querySelector(`a[data-room="${currentRoom}"]`);
+                if (defaultRoomLink) {
+                    defaultRoomLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
+                }
+                currentRoomNameDisplay.textContent = currentRoom;
+            } else {
+                // If banned, set current room display to a default message
+                currentRoomNameDisplay.textContent = "Access Restricted";
+                messagesContainer.innerHTML = `
+                    <div class="flex justify-center text-center text-red-400 p-4">
+                        <p>You are currently banned from Campus Connect. You cannot send or receive messages.</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

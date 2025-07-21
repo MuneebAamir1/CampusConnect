@@ -31,6 +31,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/campus
 const DB_NAME = process.env.DB_NAME || 'campusconnect_db';
 
 let db; // Variable to hold our MongoDB database instance
+let dbConnected = false; // NEW: Flag to track database connection status
 
 // Admin credentials from environment variables
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
@@ -42,6 +43,7 @@ async function connectDB() {
         const client = new MongoClient(MONGODB_URI);
         await client.connect();
         db = client.db(DB_NAME);
+        dbConnected = true; // Set flag to true on successful connection
         console.log('Connected to MongoDB successfully!');
 
         // Ensure default rooms exist and are public
@@ -104,6 +106,7 @@ app.get('/api/status', (req, res) => {
 
 // Register User Route
 app.post('/api/register', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { fullName, username, email, password } = req.body;
 
     // Basic validation
@@ -155,6 +158,7 @@ app.post('/api/register', async (req, res) => {
 
 // Login User Route
 app.post('/api/login', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { identifier, password } = req.body; // 'identifier' can be username or email
 
     if (!identifier || !password) {
@@ -200,6 +204,7 @@ app.post('/api/login', async (req, res) => {
 
 // Get User Profile by ID
 app.get('/api/profile/:userId', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { userId } = req.params;
 
     if (!userId) {
@@ -240,6 +245,7 @@ app.get('/api/profile/:userId', async (req, res) => {
 
 // Update User Profile
 app.post('/api/profile/update', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { userId, fullName, username, email, bio, profilePicUrl } = req.body;
 
     if (!userId) {
@@ -318,6 +324,7 @@ app.post('/api/profile/update', async (req, res) => {
 
 // Admin Login
 app.post('/api/admin/login', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { username, password } = req.body;
 
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
@@ -330,6 +337,7 @@ app.post('/api/admin/login', async (req, res) => {
 
 // Admin: Create New Room
 app.post('/api/admin/rooms', authenticateAdmin, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { name, type } = req.body; // type can be 'public' or 'private'
 
     if (!name || !type) {
@@ -361,6 +369,7 @@ app.post('/api/admin/rooms', authenticateAdmin, async (req, res) => {
 
 // Admin: Get All Rooms (for chat.html to fetch and admin.html to display)
 app.get('/api/rooms', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     try {
         const roomsCollection = db.collection('rooms');
         const rooms = await roomsCollection.find({}).toArray();
@@ -373,6 +382,7 @@ app.get('/api/rooms', async (req, res) => {
 
 // Admin: Delete Room
 app.delete('/api/admin/rooms/:roomName', authenticateAdmin, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { roomName } = req.params;
 
     // Prevent deletion of default public rooms
@@ -415,6 +425,7 @@ app.delete('/api/admin/rooms/:roomName', authenticateAdmin, async (req, res) => 
 
 // Admin: Submit Room Join Request (from user)
 app.post('/api/rooms/request-join', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { userId, username, userEmail, roomName } = req.body;
 
     if (!userId || !username || !userEmail || !roomName) {
@@ -461,6 +472,7 @@ app.post('/api/rooms/request-join', async (req, res) => {
 
 // Admin: Get Pending Room Join Requests
 app.get('/api/admin/room-requests', authenticateAdmin, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     try {
         const roomRequestsCollection = db.collection('roomRequests');
         const pendingRequests = await roomRequestsCollection.find({ status: 'pending' }).toArray();
@@ -473,6 +485,7 @@ app.get('/api/admin/room-requests', authenticateAdmin, async (req, res) => {
 
 // Admin: Approve/Reject Room Join Request
 app.post('/api/admin/room-requests/:requestId/action', authenticateAdmin, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { requestId } = req.params;
     const { action, reason } = req.body; // action: 'approve' or 'reject'
 
@@ -545,6 +558,7 @@ app.post('/api/admin/room-requests/:requestId/action', authenticateAdmin, async 
 
 // User: Get Notifications
 app.get('/api/user/notifications/:userId', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { userId } = req.params;
     if (!userId) {
         return res.status(400).json({ message: 'User ID is required.' });
@@ -564,6 +578,7 @@ app.get('/api/user/notifications/:userId', async (req, res) => {
 
 // User: Mark Notification as Read
 app.post('/api/user/notifications/mark-read', async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { notificationId, userId } = req.body;
     if (!notificationId || !userId) {
         return res.status(400).json({ message: 'Notification ID and User ID are required.' });
@@ -586,6 +601,7 @@ app.post('/api/user/notifications/mark-read', async (req, res) => {
 
 // Admin: Get All Users
 app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     try {
         const usersCollection = db.collection('users');
         // Fetch all users, but exclude their passwords for security
@@ -599,6 +615,7 @@ app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
 
 // Admin: Ban/Unban User
 app.post('/api/admin/users/:userId/ban', authenticateAdmin, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
     const { userId } = req.params;
     const { isBanned, reason } = req.body; // isBanned: true/false, reason: optional string
 
@@ -617,14 +634,10 @@ app.post('/api/admin/users/:userId/ban', authenticateAdmin, async (req, res) => 
             return res.status(404).json({ message: 'User not found.' });
         }
 
-        // Prevent banning the admin account itself (if admin is a regular user in DB)
-        // This check assumes admin is NOT stored as a regular user in 'users' collection.
-        // If admin is stored as a user, you'd need a more robust way to identify the admin user.
-        // For now, we assume admin is separate.
-
+        // Update user's ban status and ban reason
         await usersCollection.updateOne(
             { _id: userObjectId },
-            { $set: { isBanned: isBanned } }
+            { $set: { isBanned: isBanned, banReason: isBanned ? (reason || 'No reason provided.') : '' } } // Store reason if banned, clear if unbanned
         );
 
         let notificationMessage;
@@ -665,6 +678,13 @@ io.on('connection', (socket) => {
 
     // When a user joins a room, they also send their username and user ID
     socket.on('joinRoom', async (roomName, username, userId) => {
+        // NEW: Check if DB is connected before proceeding with DB operations
+        if (!dbConnected) {
+            console.error('Database not connected yet. Cannot process joinRoom.');
+            socket.emit('message', { user: 'Admin', text: 'Server is still initializing. Please try again in a moment.', timestamp: new Date(), room: roomName });
+            return;
+        }
+
         // If userId is provided (from authenticated user), store it
         if (userId) {
             socket.data.userId = userId;
@@ -757,6 +777,16 @@ io.on('connection', (socket) => {
 
     // Handle chat messages
     socket.on('chatMessage', async (messageData) => {
+        // NEW: Check if DB is connected before proceeding with DB operations
+        if (!dbConnected) {
+            console.error('Database not connected yet. Cannot process chatMessage.');
+            socket.emit('banned', {
+                message: 'Server is still initializing. Cannot send messages. Please try again in a moment.',
+                contactEmail: 'muneebaamir2006@gmail.com'
+            });
+            return;
+        }
+
         const { text, username, room, userId } = messageData;
 
         // Check if the user sending the message is banned

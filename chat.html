@@ -396,7 +396,12 @@
 
 
             // --- Socket.IO Connection ---
-            const socket = io('https://d644d532268a.ngrok-free.app');
+const socket = io('https://d644d532268a.ngrok-free.app', {
+    transports: ['websocket'], // Force WebSocket transport
+    upgrade: false,           // Prevent HTTP long-polling fallback first
+    secure: true,             // Ensure it tries WSS
+    rejectUnauthorized: false // Dangerous for production, but can help with self-signed certs/ngrok
+});
 
             // Handle initial connection
             socket.on('connect', () => {

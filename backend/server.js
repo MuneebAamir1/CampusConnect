@@ -88,7 +88,19 @@ const authenticateAdmin = (req, res, next) => {
 
 
 // Enable CORS for all Express routes (important for frontend communication)
-app.use(cors());
+const cors = require('cors');
+// ... other imports
+
+// Define your Vercel frontend URL
+const allowedOrigin = 'https://campus-connect-dun-six.vercel.app'; // <--- REPLACE WITH YOUR ACTUAL VERCEl URL
+
+app.use(cors({
+    origin: allowedOrigin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow these HTTP methods
+    credentials: true // Allow cookies/auth headers to be sent
+}));
+
+// ... rest of your server.js code
 // Middleware to parse JSON request bodies
 app.use(express.json());
 

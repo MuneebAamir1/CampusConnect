@@ -351,7 +351,7 @@
                     }
 
                     // Fetch the latest user data from the backend to get updated joinedRooms and ban status
-                    const response = await fetch(`https://0e6fc3b735fc.ngrok-free.app/api/profile/${currentUser.id}`);
+                    const response = await fetch(`https://campusconnect-gox2.onrender.com/api/profile/${currentUser.id}`);
                     const data = await response.json();
                     if (response.ok) {
                         currentUser = data; // Update currentUser with fresh data from backend
@@ -400,11 +400,11 @@
 
 
             // --- Socket.IO Connection ---
-const socket = io('https://0e6fc3b735fc.ngrok-free.app', {
+const socket = io('https://campusconnect-gox2.onrender.com', {
     transports: ['websocket'], // Force WebSocket transport
     upgrade: false,           // Prevent HTTP long-polling fallback first
     secure: true,             // Ensure it tries WSS
-    rejectUnauthorized: false // Dangerous for production, but can help with self-signed certs/ngrok
+    rejectUnauthorized: false 
 });
 
             // Handle initial connection
@@ -483,7 +483,7 @@ socket.on('disconnect', (reason) => {
 
             async function markNotificationAsRead(notificationId) {
                 try {
-                    await fetch('https://0e6fc3b735fc.ngrok-free.app/api/user/notifications/mark-read', {
+                    await fetch('https://campusconnect-gox2.onrender.com/api/user/notifications/mark-read', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ notificationId, userId: currentUser.id })
@@ -513,7 +513,7 @@ socket.on('disconnect', (reason) => {
             // --- Dynamic Room Loading ---
             async function fetchAndRenderRooms() {
                 try {
-                    const response = await fetch('https://0e6fc3b735fc.ngrok-free.app/api/rooms');
+                    const response = await fetch('https://campusconnect-gox2.onrender.com/api/rooms');
                     const data = await response.json();
 
                     if (response.ok) {
@@ -622,7 +622,7 @@ socket.on('disconnect', (reason) => {
 
                 showUIMessage(`Submitting request for "${roomName}"...`, 'info');
                 try {
-                    const response = await fetch('https://0e6fc3b735fc.ngrok-free.app/api/rooms/request-join', {
+                    const response = await fetch('https://campusconnect-gox2.onrender.com/api/rooms/request-join', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

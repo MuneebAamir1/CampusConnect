@@ -9,6 +9,8 @@ const { MongoClient, ObjectId } = require('mongodb'); // MongoDB driver, added O
 const path = require('path'); // Node.js built-in path module
 const cors = require('cors'); // For Cross-Origin Resource Sharing
 const bcrypt = require('bcryptjs'); // For password hashing
+const multer = require('multer'); // <--- Naya Import
+const cloudinary = require('cloudinary').v2;
 
 // Initialize Express app
 const app = express();
@@ -23,6 +25,15 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Multer storage setup (in-memory storage for direct upload to Cloudinary)
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // MongoDB connection URI
 // For local MongoDB, this is typically 'mongodb://localhost:27017'
@@ -213,6 +224,57 @@ app.post('/api/login', async (req, res) => {
 });
 
 // --- User Profile Routes ---
+
+// --- User Profile Routes (Existing section mein add karein) ---
+
+// Upload Profile Picture
+app.post('/api/profile/upload-pic/:userId', upload.single('profilePic'), async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ message: 'Server is still initializing. Database not ready.' });
+    const { userId } = req.params;
+
+    if (!req.file) {
+        return res.status(400).json({ message: 'No image file provided.' });
+    }
+
+    try {
+        const usersCollection = db.collection('users');
+        const userObjectId = new ObjectId(userId);
+        const user = await usersCollection.findOne({ _id: userObjectId });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Upload image to Cloudinary
+        const result = await cloudinary.uploader.upload(
+            `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+            {
+                folder: 'campus_connect_profile_pics', // Cloudinary mein folder ka naam
+                public_id: `profile_${userId}`, // Unique ID for the image
+                overwrite: true // Agar pehle se koi image hai toh overwrite kar de
+            }
+        );
+
+        const profilePicUrl = result.secure_url; // Uploaded image ka secure URL
+
+        // Update user's profilePicUrl in MongoDB
+        await usersCollection.updateOne(
+            { _id: userObjectId },
+            { $set: { profilePicUrl: profilePicUrl } }
+        );
+
+        res.status(200).json({ message: 'Profile picture updated successfully!', profilePicUrl: profilePicUrl });
+
+    } catch (error) {
+        console.error('Error uploading profile picture:', error);
+        if (error.name === 'BSONTypeError') {
+            return res.status(400).json({ message: 'Invalid User ID format.' });
+        }
+        res.status(500).json({ message: 'Server error uploading profile picture.' });
+    }
+});
+
+// ... rest of your server.js code
 
 // Get User Profile by ID
 app.get('/api/profile/:userId', async (req, res) => {
@@ -522,7 +584,7 @@ app.post('/api/admin/room-requests/:requestId/action', authenticateAdmin, async 
             // Add room to user's joinedRooms
             await usersCollection.updateOne(
                 { _id: request.userId },
-                { $addToSet: { joinedRooms: request.roomName } } // $addToSet prevents duplicates
+                { $addToSet: { joinedRooms: request.roomName } } 
             );
             // Update request status
             await roomRequestsCollection.updateOne(
@@ -851,7 +913,7 @@ io.on('connection', (socket) => {
         console.log(`${username} (${socket.id}) disconnected.`);
         delete connectedUsers[socket.id]; // Remove from connected users map
         // Optionally, notify rooms that this user disconnected
-        // (This would require iterating through rooms the user was in)
+
     });
 });
 
@@ -859,15 +921,14 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
-    await connectDB(); // Connect to MongoDB when the server starts
+    await connectDB();
 });
 
-// Graceful shutdown
+//shutdown
 process.on('SIGINT', async () => {
     console.log('Server shutting down...');
     if (db) {
-        // Ensure to close the client correctly
-        // The db object is the database instance, which has a client property
+
         await db.client.close();
         console.log('MongoDB connection closed.');
     }

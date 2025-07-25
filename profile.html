@@ -117,8 +117,9 @@
             const uploadPicButton = document.getElementById('upload-pic-button');
             const profilePicUploadInput = document.getElementById('profile-pic-upload');
             const messageArea = document.getElementById('message-area');
+              const backendUrl = 'https://campusconnect-gox2.onrender.com'; 
+             let currentUser = null;
 
-            let currentUser = null; // Will store the logged-in user object
 
             // Function to display messages
             function showMessage(message, type = 'success') {
@@ -186,7 +187,7 @@
             }
 
             // --- Handle Profile Update Submission ---
-            profileForm.addEventListener('submit', async (e) => {
+                  profileForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
                 if (!currentUser || !currentUser.id) {
@@ -200,7 +201,7 @@
                     username: usernameInput.value,
                     // Email is readonly, so we don't send it for update here
                     bio: bioTextarea.value,
-                    // profilePicUrl will be handled separately if actual upload is implemented
+                    profilePicUrl: currentUser.profilePicUrl || null // <--- Yeh line ab profilePicUrl bhi bhejegi
                 };
 
                 // If username was changed, include it
@@ -211,7 +212,8 @@
                 showMessage('Saving changes...', 'info');
 
                 try {
-                    const response = await fetch('https://campusconnect-gox2.onrender.com/api/profile/update', {
+                    // Ensure this fetch also uses the backendUrl
+                    const response = await fetch(`${backendUrl}/api/profile/update`, { // <--- backendUrl use kiya
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -236,25 +238,6 @@
                 }
             });
 
-            // --- Profile Picture Upload (Client-side preview only for now) ---
-            uploadPicButton.addEventListener('click', () => {
-                profilePicUploadInput.click(); // Trigger the hidden file input click
-            });
-
-            profilePicUploadInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        profilePicPreview.src = e.target.result;
-                        // In a real app, you would upload this image to a storage service (e.g., Cloudinary, AWS S3)
-                        // and then send the resulting URL to your backend to save in profilePicUrl.
-                        // For now, this is just a client-side preview.
-                        showMessage('Image preview updated. Remember to implement actual image upload to server.', 'info');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
         });
     </script>
 </body>

@@ -654,12 +654,11 @@ socket.on('disconnect', (reason) => {
             menuToggle.addEventListener('click', () => {
                 sidebar.classList.toggle('sidebar-hidden');
                 sidebar.classList.toggle('sidebar-visible');
-                document.body.classList.toggle('sidebar-open'); // Toggle class on body
+                document.body.classList.toggle('sidebar-open');
             });
 
             // --- Message Sending Logic ---
             function sendMessage() {
-                // Prevent sending messages if banned
                 if (currentUser.isBanned) {
                     showUIMessage('You cannot send messages because you are banned.', 'error');
                     return;

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Connect - Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
         :root {
             --color-primary-accent: #506b56;
@@ -25,6 +26,7 @@
             --color-notification-bg: #3b3e44;
             --color-notification-border: #4a4e55;
             --color-banned-overlay-bg: rgba(0, 0, 0, 0.7); /* Dark overlay for banned state */
+            --color-reply-border: #4a90e2; /* Blue for reply quote */
         }
 
         html {
@@ -121,6 +123,7 @@
             max-width: 75%;
             word-wrap: break-word;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative; /* For dropdown positioning */
         }
 
         .message-own {
@@ -227,6 +230,104 @@
             color: var(--color-primary-accent);
             text-decoration: underline;
         }
+
+        /* Reply Preview Area Styling */
+        #reply-preview-area {
+            max-height: 80px; /* Limit height */
+            overflow: hidden;
+            border-top: 1px solid var(--color-border-color);
+            background-color: var(--color-input-bg);
+        }
+        #reply-preview-text {
+            white-space: nowrap; /* Prevent text from wrapping */
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
+        }
+        .reply-quote {
+            background-color: var(--color-dark-bg); /* Darker background for quote */
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--color-reply-border); /* Highlight with accent color */
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .reply-quote .quoted-user {
+            font-weight: bold;
+            color: var(--color-primary-accent);
+        }
+
+        /* Message Options Dropdown (Desktop Only) */
+        .message-options-container {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s ease-in-out;
+            z-index: 10;
+        }
+        .message-bubble:hover .message-options-container {
+            opacity: 1; /* Show on hover for desktop */
+        }
+        @media (max-width: 767px) {
+            .message-options-container {
+                display: none; /* Hide on mobile */
+            }
+        }
+
+        .message-options-button {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .message-options-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--color-text-light);
+        }
+
+        .message-options-dropdown {
+            position: absolute;
+            top: 100%; /* Position below the button */
+            right: 0;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            min-width: 150px;
+            z-index: 20;
+            overflow: hidden;
+            display: none; /* Hidden by default */
+        }
+        .message-options-dropdown.active {
+            display: block; /* Show when active */
+        }
+
+        .message-options-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            background: none;
+            border: none;
+            color: var(--color-text-light);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .message-options-dropdown button:hover {
+            background-color: var(--color-input-bg);
+        }
+        .message-options-dropdown button:not(:last-child) {
+            border-bottom: 1px solid var(--color-border-color);
+        }
     </style>
 </head>
 <body>
@@ -290,6 +391,17 @@
             <!-- Dynamic messages will be appended here -->
         </div>
 
+        <!-- Reply Preview Area (Naya Code) -->
+        <div id="reply-preview-area" class="p-3 bg-[var(--color-input-bg)] border-t border-[var(--color-border-color)] flex items-center justify-between hidden">
+            <div class="flex flex-col flex-grow mr-3">
+                <span class="text-xs font-semibold text-[var(--color-primary-accent)]">Replying to:</span>
+                <span id="reply-preview-text" class="text-sm text-[var(--color-text-light)] truncate"></span>
+            </div>
+            <button id="cancel-reply-button" class="text-[var(--color-text-muted)] hover:text-white transition duration-200">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
+        </div>
+
         <!-- Message Input -->
         <div class="p-4 bg-[var(--color-header-bg)] border-t border-[var(--color-border-color)] flex items-center">
             <input type="text" id="message-input" placeholder="Type your message..."
@@ -308,12 +420,13 @@
         <p>Please contact the administrator at <a id="contact-email" href="mailto:muneebaamir2006@gmail.com">muneebaamir2006@gmail.com</a> to get unbanned.</p>
     </div>
 
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-    // Enable Socket.IO client-side debugging
-    localStorage.debug = 'socket.io-client:*';
-</script>
-    <script>
+        // Enable Socket.IO client-side debugging (Optional, remove in production)
+        // localStorage.debug = 'socket.io-client:*';
+
+        // --- Backend URL variable ---
+        const backendUrl = 'https://campusconnect-gox2.onrender.com'; // <--- APNI RENDER BACKEND URL YAHAN PASTE KAREIN
+
         document.addEventListener('DOMContentLoaded', async () => {
             const messagesContainer = document.getElementById('messages-container');
             const messageInput = document.getElementById('message-input');
@@ -326,16 +439,33 @@
             const userAvatar = document.getElementById('user-avatar');
             const logoutButton = document.getElementById('logout-button');
             const notificationsArea = document.getElementById('notifications-area');
-            const bannedOverlay = document.getElementById('banned-overlay'); // New
-            const bannedMessage = document.getElementById('banned-message'); // New
-            const contactEmail = document.getElementById('contact-email'); // New
+            const bannedOverlay = document.getElementById('banned-overlay');
+            const bannedMessage = document.getElementById('banned-message');
+            const contactEmail = document.getElementById('contact-email');
+
+            // --- New Reply Feature Variables ---
+            const replyPreviewArea = document.getElementById('reply-preview-area');
+            const replyPreviewText = document.getElementById('reply-preview-text');
+            const cancelReplyButton = document.getElementById('cancel-reply-button');
+            let replyingToMessage = null; // Stores the message object being replied to
 
             let currentUser = null;
             let currentRoom = 'General Chat';
+            let lastJoinedMessageTimestamp = {}; // To prevent duplicate "joined" messages on reconnect
+
 
             // Function to display UI messages (for debugging/feedback)
             function showUIMessage(message, type = 'info') {
                 console.log(`UI Message (${type}): ${message}`);
+            }
+
+            // --- Helper function to update user avatar display ---
+            function updateUserAvatarDisplay(user) {
+                if (user && user.profilePicUrl) {
+                    userAvatar.src = user.profilePicUrl;
+                } else {
+                    userAvatar.src = `https://placehold.co/40x40/506b56/FFFFFF?text=${(user && user.username ? user.username.charAt(0).toUpperCase() : 'U')}`;
+                }
             }
 
             // --- Enforce Login/Registration and Fetch User Data ---
@@ -344,23 +474,19 @@
                 try {
                     currentUser = JSON.parse(storedUser);
                     loggedInUsernameDisplay.textContent = currentUser.username || currentUser.fullName || 'User';
-                    if (currentUser.profilePicUrl) {
-                        userAvatar.src = currentUser.profilePicUrl;
-                    } else {
-                        userAvatar.src = `https://placehold.co/40x40/506b56/FFFFFF?text=${(currentUser.username || 'U').charAt(0).toUpperCase()}`;
-                    }
+
+                    // Initial update of user avatar based on stored data
+                    updateUserAvatarDisplay(currentUser);
 
                     // Fetch the latest user data from the backend to get updated joinedRooms and ban status
-                    const response = await fetch(`https://campusconnect-gox2.onrender.com/api/profile/${currentUser.id}`);
+                    const response = await fetch(`${backendUrl}/api/profile/${currentUser.id}`);
                     const data = await response.json();
                     if (response.ok) {
-                        currentUser = data; // Update currentUser with fresh data from backend
+                        currentUser = data; // Update currentUser with fresh data from backend (data is directly the user object)
                         localStorage.setItem('currentUser', JSON.stringify(currentUser)); // Update localStorage
-                        if (currentUser.profilePicUrl) {
-                            userAvatar.src = currentUser.profilePicUrl;
-                        } else {
-                            userAvatar.src = `https://placehold.co/40x40/506b56/FFFFFF?text=${(currentUser.username || 'U').charAt(0).toUpperCase()}`;
-                        }
+
+                        // Update user avatar again with potentially fresher data
+                        updateUserAvatarDisplay(currentUser);
 
                         // Check ban status immediately after fetching user data
                         if (currentUser.isBanned) {
@@ -386,305 +512,6 @@
                 return;
             }
 
-            // --- Banned Mode Activation ---
-            function activateBannedMode(message) {
-                bannedOverlay.classList.remove('hidden');
-                bannedMessage.textContent = message;
-                messageInput.disabled = true;
-                sendButton.disabled = true;
-                sendButton.classList.add('opacity-50', 'cursor-not-allowed');
-                // Optionally blur the main content if not already done by overlay backdrop-filter
-                document.querySelector('main').style.filter = 'blur(2px)';
-                document.querySelector('aside').style.filter = 'blur(2px)';
-            }
-
-
-            // --- Socket.IO Connection ---
-const socket = io('https://campusconnect-gox2.onrender.com', {
-    transports: ['websocket'], // Force WebSocket transport
-    upgrade: false,           // Prevent HTTP long-polling fallback first
-    secure: true,             // Ensure it tries WSS
-    rejectUnauthorized: false 
-});
-
-            // Handle initial connection
-            socket.on('connect', () => {
-                console.log('Connected to server with socket ID:', socket.id);
-                // Only join room if not banned
-                if (!currentUser.isBanned) {
-                    socket.emit('joinRoom', currentRoom, currentUser.username, currentUser.id);
-                }
-            });
-
-            // Listen for chat history from the server
-            socket.on('chatHistory', (history) => {
-                messagesContainer.innerHTML = ''; // Clear existing messages
-                history.forEach(message => appendMessage(message));
-            });
-
-            // Listen for new messages from the server
-            socket.on('message', (message) => {
-                if (message.room === currentRoom) {
-                    appendMessage(message);
-                }
-            });
-            // Add these lines right after your const socket = io(...) line
-socket.on('connect', () => {
-    console.log('SOCKET.IO: Successfully connected to server!');
-    // Remove the debug flag from localStorage once connected to avoid excessive logs
-    // localStorage.removeItem('debug');
-});
-
-socket.on('connect_error', (error) => {
-    console.error('SOCKET.IO: Connection Error:', error);
-    // Log the error object for more details
-    if (error.message) console.error('Error message:', error.message);
-    if (error.description) console.error('Error description:', error.description);
-    if (error.code) console.error('Error code:', error.code);
-});
-
-socket.on('disconnect', (reason) => {
-    console.warn('SOCKET.IO: Disconnected:', reason);
-});
-
-            // Listen for notifications from the server
-            socket.on('notifications', (notifications) => {
-                notifications.forEach(notification => displayNotification(notification));
-            });
-
-            // Listen for 'banned' event from server
-            socket.on('banned', (data) => {
-                console.warn('Received banned event from server:', data.message);
-                activateBannedMode(data.message);
-                // Optionally update contact email if provided
-                if (data.contactEmail) {
-                    contactEmail.href = `mailto:${data.contactEmail}`;
-                    contactEmail.textContent = data.contactEmail;
-                }
-                socket.disconnect(true); // Disconnect the socket as user is banned
-            });
-
-
-            // --- Notification Display Function ---
-            async function displayNotification(notification) {
-                const notificationElement = document.createElement('div');
-                notificationElement.className = 'notification-item flex items-center justify-between p-3 mb-2 rounded-lg bg-[var(--color-notification-bg)] border border-[var(--color-notification-border)]';
-                notificationElement.innerHTML = `
-                    <span>${notification.message}</span>
-                    <button class="close-btn" data-notification-id="${notification._id}">&times;</button>
-                `;
-                notificationsArea.prepend(notificationElement);
-
-                notificationElement.querySelector('.close-btn').addEventListener('click', async () => {
-                    await markNotificationAsRead(notification._id);
-                    notificationElement.remove();
-                });
-            }
-
-            async function markNotificationAsRead(notificationId) {
-                try {
-                    await fetch('https://campusconnect-gox2.onrender.com/api/user/notifications/mark-read', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ notificationId, userId: currentUser.id })
-                    });
-                } catch (error) {
-                    console.error('Error marking notification as read:', error);
-                }
-            }
-
-            // --- Message Appending Function ---
-            function appendMessage(message) {
-                const messageElement = document.createElement('div');
-                const isOwnMessage = currentUser && message.user === currentUser.username;
-
-                messageElement.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-2 chat-scroll-animation`;
-                messageElement.innerHTML = `
-                    <div class="message-bubble ${isOwnMessage ? 'message-own' : 'message-other'}">
-                        <p class="message-username ${isOwnMessage ? '' : 'text-blue-300'}">${message.user}</p>
-                        <p>${message.text}</p>
-                        <span class="message-time">${new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                `;
-                messagesContainer.appendChild(messageElement);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-
-            // --- Dynamic Room Loading ---
-            async function fetchAndRenderRooms() {
-                try {
-                    const response = await fetch('https://campusconnect-gox2.onrender.com/api/rooms');
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        renderRooms(data.rooms);
-                    } else {
-                        showUIMessage(data.message || 'Failed to fetch rooms.', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error fetching rooms:', error);
-                    showUIMessage('Network error or server unavailable. Failed to load rooms.', 'error');
-                }
-            }
-
-            function renderRooms(rooms) {
-                roomList.innerHTML = ''; // Clear existing elements
-
-                rooms.sort((a, b) => {
-                    if (a.type === 'public' && b.type !== 'public') return -1;
-                    if (a.type !== 'public' && b.type === 'public') return 1;
-                    return a.name.localeCompare(b.name);
-                });
-
-                rooms.forEach(room => {
-                    const isJoined = currentUser.joinedRooms && currentUser.joinedRooms.includes(room.name);
-                    const isPublic = room.type === 'public';
-
-                    const listItem = document.createElement('li');
-                    listItem.className = 'mb-2';
-
-                    let roomHtml = '';
-                    if (isPublic || isJoined) {
-                        roomHtml = `
-                            <a href="#" class="block p-3 rounded-lg hover:bg-[var(--color-input-bg)] transition duration-200 flex items-center"
-                               data-room="${room.name}" data-room-type="${room.type}" data-joined="true">
-                                <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h10v8H5V6z"></path></svg>
-                                # ${room.name}
-                            </a>
-                        `;
-                    } else {
-                        roomHtml = `
-                            <div class="flex items-center justify-between p-3 rounded-lg bg-[var(--color-input-bg)] text-[var(--color-text-muted)]">
-                                <span class="flex items-center">
-                                    <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2V5a3 3 0 10-6 0v2h6z" clip-rule="evenodd"></path></svg>
-                                    # ${room.name}
-                                </span>
-                                <button class="py-1 px-3 rounded-lg bg-[var(--color-request-button)] hover:bg-[var(--color-request-button-hover)] text-white text-xs transition duration-200"
-                                        data-action="request-join" data-room-name="${room.name}">
-                                    Request to Join
-                                </button>
-                            </div>
-                        `;
-                    }
-                    listItem.innerHTML = roomHtml;
-                    roomList.appendChild(listItem);
-                });
-
-                // Re-attach event listeners to new room links
-                roomList.querySelectorAll('a[data-room]').forEach(link => {
-                    link.addEventListener('click', handleRoomClick);
-                });
-                roomList.querySelectorAll('button[data-action="request-join"]').forEach(button => {
-                    button.addEventListener('click', handleRequestJoin);
-                });
-
-                // Set initial active room style
-                const defaultRoomLink = document.querySelector(`a[data-room="${currentRoom}"]`);
-                if (defaultRoomLink) {
-                    defaultRoomLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
-                }
-            }
-
-            async function handleRoomClick(event) {
-                event.preventDefault();
-                const clickedLink = event.currentTarget;
-                const newRoom = clickedLink.dataset.room;
-                const roomType = clickedLink.dataset.roomType;
-                const isJoined = clickedLink.dataset.joined === 'true';
-
-                if (roomType === 'public' || isJoined) {
-                    roomList.querySelectorAll('a[data-room]').forEach(l => l.classList.remove('bg-[var(--color-secondary-accent)]', 'text-white'));
-                    clickedLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
-
-                    if (newRoom !== currentRoom) {
-                        socket.emit('leaveRoom', currentRoom);
-                        socket.emit('joinRoom', newRoom, currentUser.username, currentUser.id);
-                        currentRoom = newRoom;
-                        currentRoomNameDisplay.textContent = newRoom;
-                        messagesContainer.innerHTML = '';
-                    }
-
-                    // Close sidebar on mobile after selection
-                    if (window.innerWidth < 768) {
-                        sidebar.classList.add('sidebar-hidden');
-                        sidebar.classList.remove('sidebar-visible');
-                        document.body.classList.remove('sidebar-open'); // Remove class from body
-                    }
-                } else {
-                    showUIMessage(`You need to request to join "${newRoom}".`, 'info');
-                }
-            }
-
-            async function handleRequestJoin(event) {
-                event.preventDefault();
-                const button = event.currentTarget;
-                const roomName = button.dataset.roomName;
-
-                showUIMessage(`Submitting request for "${roomName}"...`, 'info');
-                try {
-                    const response = await fetch('https://campusconnect-gox2.onrender.com/api/rooms/request-join', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: currentUser.id,
-                            username: currentUser.username,
-                            userEmail: currentUser.email,
-                            roomName: roomName
-                        })
-                    });
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        showUIMessage(data.message, 'success');
-                        button.textContent = 'Request Sent';
-                        button.disabled = true;
-                        button.classList.remove('bg-[var(--color-request-button)]', 'hover:bg-[var(--color-request-button-hover)]');
-                        button.classList.add('bg-gray-500', 'cursor-not-allowed');
-                    } else {
-                        showUIMessage(data.message || 'Failed to submit request.', 'error');
-                    }
-                } catch (error) {
-                    console.error('Request join error:', error);
-                    showUIMessage('Network error or server unavailable. Failed to submit request.', 'error');
-                }
-            }
-
-
-            // --- Sidebar Toggle for Mobile ---
-            menuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('sidebar-hidden');
-                sidebar.classList.toggle('sidebar-visible');
-                document.body.classList.toggle('sidebar-open');
-            });
-
-            // --- Message Sending Logic ---
-            function sendMessage() {
-                if (currentUser.isBanned) {
-                    showUIMessage('You cannot send messages because you are banned.', 'error');
-                    return;
-                }
-
-                const messageText = messageInput.value.trim();
-                if (messageText && currentUser) {
-                    socket.emit('chatMessage', { text: messageText, username: currentUser.username, room: currentRoom, userId: currentUser.id });
-                    messageInput.value = '';
-                }
-            }
-
-            sendButton.addEventListener('click', sendMessage);
-
-            messageInput.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-
-            // --- Logout Functionality ---
-            logoutButton.addEventListener('click', () => {
-                localStorage.removeItem('currentUser');
-                window.location.replace('form.html');
-            });
-
             // Initial load of rooms (only if not banned)
             if (!currentUser.isBanned) {
                 await fetchAndRenderRooms();
@@ -704,6 +531,513 @@ socket.on('disconnect', (reason) => {
                     </div>
                 `;
             }
+
+            // --- Enable Mobile Gestures and Desktop Interactions ---
+            enableMessageInteractions();
+        }); // End of DOMContentLoaded
+
+        // --- Banned Mode Activation ---
+        function activateBannedMode(message) {
+            bannedOverlay.classList.remove('hidden');
+            bannedMessage.textContent = message;
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            sendButton.classList.add('opacity-50', 'cursor-not-allowed');
+            document.querySelector('main').style.filter = 'blur(2px)';
+            document.querySelector('aside').style.filter = 'blur(2px)';
+        }
+
+        // --- Socket.IO Connection ---
+        const socket = io(backendUrl, {
+            transports: ['websocket'], // Force WebSocket transport
+            upgrade: false,           // Prevent HTTP long-polling fallback first
+            secure: true,             // Ensure it tries WSS
+            rejectUnauthorized: false // Dangerous for production, but can help with self-signed certs/ngrok
+        });
+
+        // Socket.IO connection event handlers
+        socket.on('connect', () => {
+            console.log('SOCKET.IO: Successfully connected to server!');
+            if (currentUser && currentRoom) {
+                // Only emit joinRoom if it's a fresh connection or after a disconnect
+                if (!currentUser.isBanned && (!lastJoinedMessageTimestamp[currentRoom] || (Date.now() - lastJoinedMessageTimestamp[currentRoom] > 5000))) { // Add a small debounce
+                    socket.emit('joinRoom', currentRoom, currentUser.username, currentUser.id);
+                    lastJoinedMessageTimestamp[currentRoom] = Date.now(); // Mark as sent
+                }
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('SOCKET.IO: Connection Error:', error);
+            if (error.message) console.error('Error message:', error.message);
+            if (error.description) console.error('Error description:', error.description);
+            if (error.code) console.error('Error code:', error.code);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.warn('SOCKET.IO: Disconnected:', reason);
+            // On disconnect, clear the timestamp so joinRoom is re-emitted on reconnect
+            if (currentRoom) {
+                lastJoinedMessageTimestamp[currentRoom] = 0;
+            }
+        });
+
+        // Listen for chat history from the server
+        socket.on('chatHistory', (history) => {
+            messagesContainer.innerHTML = ''; // Clear existing messages
+            history.forEach(message => appendMessage(message));
+        });
+
+        // Listen for new messages from the server
+        socket.on('message', (message) => {
+            if (message.room === currentRoom) {
+                appendMessage(message);
+            }
+        });
+
+        // Listen for notifications from the server
+        socket.on('notifications', (notifications) => {
+            notifications.forEach(notification => displayNotification(notification));
+        });
+
+        // Listen for 'banned' event from server
+        socket.on('banned', (data) => {
+            console.warn('Received banned event from server:', data.message);
+            activateBannedMode(data.message);
+            if (data.contactEmail) {
+                contactEmail.href = `mailto:${data.contactEmail}`;
+                contactEmail.textContent = data.contactEmail;
+            }
+            socket.disconnect(true); // Disconnect the socket as user is banned
+        });
+
+
+        // --- Notification Display Function ---
+        async function displayNotification(notification) {
+            const notificationElement = document.createElement('div');
+            notificationElement.className = 'notification-item flex items-center justify-between p-3 mb-2 rounded-lg bg-[var(--color-notification-bg)] border border-[var(--color-notification-border)]';
+            notificationElement.innerHTML = `
+                <span>${notification.message}</span>
+                <button class="close-btn" data-notification-id="${notification._id}">&times;</button>
+            `;
+            notificationsArea.prepend(notificationElement);
+
+            notificationElement.querySelector('.close-btn').addEventListener('click', async () => {
+                await markNotificationAsRead(notification._id);
+                notificationElement.remove();
+            });
+        }
+
+        async function markNotificationAsRead(notificationId) {
+            try {
+                await fetch(`${backendUrl}/api/user/notifications/mark-read`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notificationId, userId: currentUser.id })
+                });
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // --- Message Appending Function ---
+        function appendMessage(message) {
+            const messageElement = document.createElement('div');
+            const isOwnMessage = currentUser && message.user === currentUser.username;
+
+            messageElement.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-2 chat-scroll-animation`;
+            // Add data attributes for swipe/long-press/dropdown to the message-bubble
+            messageElement.innerHTML = `
+                <div class="message-bubble ${isOwnMessage ? 'message-own' : 'message-other'}"
+                     data-message-id="${message._id}"
+                     data-message-text="${message.text}"
+                     data-message-user="${message.user}">
+                    ${message.replyTo ? `
+                        <div class="reply-quote">
+                            <span class="quoted-user">${message.replyTo.user}:</span> ${message.replyTo.text}
+                        </div>
+                    ` : ''}
+                    <p class="message-username ${isOwnMessage ? '' : 'text-blue-300'}">${message.user}</p>
+                    <p>${message.text}</p>
+                    <span class="message-time">${new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+
+                    <!-- Desktop Message Options (3 dots) - Hidden on mobile by CSS -->
+                    <div class="message-options-container">
+                        <button class="message-options-button" aria-label="Message options">
+                            &#x22EE; <!-- Vertical ellipsis (3 dots) -->
+                        </button>
+                        <div class="message-options-dropdown">
+                            <button class="reply-option-btn" data-action="reply">Reply</button>
+                            <button class="report-option-btn" data-action="report">Report to Admin</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // --- Swipe to Reply & Long-Press to Report (Mobile) / Hover & Click Dropdown (Desktop) ---
+        function enableMessageInteractions() {
+            // --- Reply Mode Functions ---
+            function setReplyMode(message) {
+                replyingToMessage = message;
+                replyPreviewText.textContent = `${message.user}: ${message.text}`;
+                replyPreviewArea.classList.remove('hidden');
+                messageInput.focus();
+            }
+
+            function cancelReplyMode() {
+                replyingToMessage = null;
+                replyPreviewText.textContent = '';
+                replyPreviewArea.classList.add('hidden');
+            }
+            cancelReplyButton.addEventListener('click', cancelReplyMode);
+
+            // --- Report Message Function ---
+            function reportMessage(messageId, messageText, reportedByUserId, reportedByUsername) {
+                if (!currentUser || !currentUser.id) {
+                    showUIMessage('Please log in to report messages.', 'error');
+                    return;
+                }
+                if (messageId && reportedByUserId) {
+                    socket.emit('reportMessage', {
+                        messageId: messageId,
+                        messageText: messageText,
+                        reportedBy: {
+                            userId: reportedByUserId,
+                            username: reportedByUsername
+                        },
+                        timestamp: new Date()
+                    });
+                    showUIMessage('Message reported to admin.', 'success');
+                } else {
+                    showUIMessage('Could not report message. Missing data.', 'error');
+                }
+            }
+
+            // --- Mobile Gestures (Swipe & Long-Press) ---
+            let touchstartX = 0;
+            let touchendX = 0;
+            let touchstartY = 0;
+            let touchendY = 0;
+            let longPressTimer = null;
+            let isLongPress = false;
+            let currentTouchedMessageElement = null;
+
+            messagesContainer.addEventListener('touchstart', e => {
+                currentTouchedMessageElement = e.target.closest('.message-bubble');
+                if (currentTouchedMessageElement) {
+                    touchstartX = e.changedTouches[0].screenX;
+                    touchstartY = e.changedTouches[0].screenY;
+                    isLongPress = false;
+                    // Start long press timer
+                    longPressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        // Trigger report menu for mobile long-press
+                        if (currentTouchedMessageElement) {
+                            const messageId = currentTouchedMessageElement.dataset.messageId;
+                            const messageText = currentTouchedMessageElement.dataset.messageText;
+                            const messageUser = currentTouchedMessageElement.dataset.messageUser;
+
+                            // Use confirm for simplicity as requested, but a custom modal is better for UX
+                            if (confirm(`Do you want to report this message from ${messageUser}: "${messageText}"?`)) {
+                                reportMessage(messageId, messageText, currentUser.id, currentUser.username);
+                            }
+                        }
+                    }, 700); // 700ms for long press
+                }
+            }, { passive: true }); // Use passive listener for better scroll performance
+
+            messagesContainer.addEventListener('touchmove', e => {
+                if (longPressTimer) {
+                    const currentX = e.changedTouches[0].screenX;
+                    const currentY = e.changedTouches[0].screenY;
+                    // If finger moves significantly, cancel long press
+                    if (Math.abs(currentX - touchstartX) > 10 || Math.abs(currentY - touchstartY) > 10) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                }
+            }, { passive: true });
+
+            messagesContainer.addEventListener('touchend', e => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+
+                if (currentTouchedMessageElement && !isLongPress) {
+                    touchendX = e.changedTouches[0].screenX;
+                    handleSwipeGesture(currentTouchedMessageElement);
+                }
+                currentTouchedMessageElement = null; // Reset
+            });
+
+            function handleSwipeGesture(messageElement) {
+                // Swipe right to left (for replying)
+                if (touchendX < touchstartX - 50) { // Swiped left by more than 50px
+                    const messageId = messageElement.dataset.messageId;
+                    const messageText = messageElement.dataset.messageText;
+                    const messageUser = messageElement.dataset.messageUser;
+
+                    if (messageId && messageText && messageUser) {
+                        setReplyMode({
+                            id: messageId,
+                            text: messageText,
+                            user: messageUser
+                        });
+                    }
+                }
+            }
+
+            // --- Desktop Interactions (Hover & Click Dropdown) ---
+            messagesContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('.message-options-button');
+                if (button) {
+                    const dropdown = button.nextElementSibling; // The dropdown is the next sibling
+                    // Close other open dropdowns
+                    document.querySelectorAll('.message-options-dropdown.active').forEach(openDropdown => {
+                        if (openDropdown !== dropdown) {
+                            openDropdown.classList.remove('active');
+                        }
+                    });
+                    dropdown.classList.toggle('active');
+                    e.stopPropagation(); // Prevent document click from closing it immediately
+                } else {
+                    // Clicked outside, close all dropdowns
+                    document.querySelectorAll('.message-options-dropdown.active').forEach(openDropdown => {
+                        openDropdown.classList.remove('active');
+                    });
+                }
+
+                const replyBtn = e.target.closest('.reply-option-btn');
+                if (replyBtn) {
+                    const messageBubble = replyBtn.closest('.message-bubble');
+                    if (messageBubble) {
+                        setReplyMode({
+                            id: messageBubble.dataset.messageId,
+                            text: messageBubble.dataset.messageText,
+                            user: messageBubble.dataset.messageUser
+                        });
+                    }
+                }
+
+                const reportBtn = e.target.closest('.report-option-btn');
+                if (reportBtn) {
+                    const messageBubble = reportBtn.closest('.message-bubble');
+                    if (messageBubble) {
+                        reportMessage(
+                            messageBubble.dataset.messageId,
+                            messageBubble.dataset.messageText,
+                            currentUser.id,
+                            currentUser.username
+                        );
+                    }
+                }
+            });
+
+            // Close dropdown if clicked anywhere else on the document
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.message-options-dropdown') && !e.target.closest('.message-options-button')) {
+                    document.querySelectorAll('.message-options-dropdown.active').forEach(openDropdown => {
+                        openDropdown.classList.remove('active');
+                    });
+                }
+            });
+        } // End of enableMessageInteractions
+
+
+        // --- Message Sending Logic ---
+        function sendMessage() {
+            // Prevent sending messages if banned
+            if (currentUser.isBanned) {
+                showUIMessage('You cannot send messages because you are banned.', 'error');
+                return;
+            }
+
+            const messageText = messageInput.value.trim();
+            if (messageText && currentUser) {
+                const messageData = {
+                    text: messageText,
+                    username: currentUser.username,
+                    room: currentRoom,
+                    userId: currentUser.id
+                };
+
+                if (replyingToMessage) { // <--- Reply data add karein
+                    messageData.replyTo = {
+                        id: replyingToMessage.id,
+                        text: replyingToMessage.text,
+                        user: replyingToMessage.user
+                    };
+                    cancelReplyMode(); // Reply mode cancel karein message bhejte hi
+                }
+
+                socket.emit('chatMessage', messageData);
+                messageInput.value = '';
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+
+        messageInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // --- Logout Functionality ---
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            window.location.replace('form.html');
+        });
+
+        // --- Dynamic Room Loading ---
+        async function fetchAndRenderRooms() {
+            try {
+                const response = await fetch(`${backendUrl}/api/rooms`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    renderRooms(data.rooms);
+                } else {
+                    showUIMessage(data.message || 'Failed to fetch rooms.', 'error');
+                }
+            } catch (error) {
+                console.error('Error fetching rooms:', error);
+                showUIMessage('Network error or server unavailable. Failed to load rooms.', 'error');
+            }
+        }
+
+        function renderRooms(rooms) {
+            roomList.innerHTML = ''; // Clear existing elements
+
+            rooms.sort((a, b) => {
+                if (a.type === 'public' && b.type !== 'public') return -1;
+                if (a.type !== 'public' && b.type === 'public') return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            rooms.forEach(room => {
+                const isJoined = currentUser.joinedRooms && currentUser.joinedRooms.includes(room.name);
+                const isPublic = room.type === 'public';
+
+                const listItem = document.createElement('li');
+                listItem.className = 'mb-2';
+
+                let roomHtml = '';
+                if (isPublic || isJoined) {
+                    roomHtml = `
+                        <a href="#" class="block p-3 rounded-lg hover:bg-[var(--color-input-bg)] transition duration-200 flex items-center"
+                           data-room="${room.name}" data-room-type="${room.type}" data-joined="true">
+                            <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h10v8H5V6z"></path></svg>
+                            # ${room.name}
+                        </a>
+                    `;
+                } else {
+                    roomHtml = `
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-[var(--color-input-bg)] text-[var(--color-text-muted)]">
+                            <span class="flex items-center">
+                                <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2V5a3 3 0 10-6 0v2h6z" clip-rule="evenodd"></path></svg>
+                                # ${room.name}
+                            </span>
+                            <button class="py-1 px-3 rounded-lg bg-[var(--color-request-button)] hover:bg-[var(--color-request-button-hover)] text-white text-xs transition duration-200"
+                                    data-action="request-join" data-room-name="${room.name}">
+                                Request to Join
+                            </button>
+                        </div>
+                    `;
+                }
+                listItem.innerHTML = roomHtml;
+                roomList.appendChild(listItem);
+            });
+
+            // Re-attach event listeners to new room links
+            roomList.querySelectorAll('a[data-room]').forEach(link => {
+                link.addEventListener('click', handleRoomClick);
+            });
+            roomList.querySelectorAll('button[data-action="request-join"]').forEach(button => {
+                button.addEventListener('click', handleRequestJoin);
+            });
+
+            // Set initial active room style
+            const defaultRoomLink = document.querySelector(`a[data-room="${currentRoom}"]`);
+            if (defaultRoomLink) {
+                defaultRoomLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
+            }
+        }
+
+        async function handleRoomClick(event) {
+            event.preventDefault();
+            const clickedLink = event.currentTarget;
+            const newRoom = clickedLink.dataset.room;
+            const roomType = clickedLink.dataset.roomType;
+            const isJoined = clickedLink.dataset.joined === 'true';
+
+            if (roomType === 'public' || isJoined) {
+                roomList.querySelectorAll('a[data-room]').forEach(l => l.classList.remove('bg-[var(--color-secondary-accent)]', 'text-white'));
+                clickedLink.classList.add('bg-[var(--color-secondary-accent)]', 'text-white');
+
+                if (newRoom !== currentRoom) {
+                    socket.emit('leaveRoom', currentRoom);
+                    socket.emit('joinRoom', newRoom, currentUser.username, currentUser.id);
+                    currentRoom = newRoom;
+                    currentRoomNameDisplay.textContent = newRoom;
+                    messagesContainer.innerHTML = '';
+                }
+
+                // Close sidebar on mobile after selection
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('sidebar-hidden');
+                    sidebar.classList.remove('sidebar-visible');
+                    document.body.classList.remove('sidebar-open'); // Remove class from body
+                }
+            } else {
+                showUIMessage(`You need to request to join "${newRoom}".`, 'info');
+            }
+        }
+
+        async function handleRequestJoin(event) {
+            event.preventDefault();
+            const button = event.currentTarget;
+            const roomName = button.dataset.roomName;
+
+            showUIMessage(`Submitting request for "${roomName}"...`, 'info');
+            try {
+                const response = await fetch(`${backendUrl}/api/rooms/request-join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        username: currentUser.username,
+                        userEmail: currentUser.email,
+                        roomName: roomName
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showUIMessage(data.message, 'success');
+                    button.textContent = 'Request Sent';
+                    button.disabled = true;
+                    button.classList.remove('bg-[var(--color-request-button)]', 'hover:bg-[var(--color-request-button-hover)]');
+                    button.classList.add('bg-gray-500', 'cursor-not-allowed');
+                } else {
+                    showUIMessage(data.message || 'Failed to submit request.', 'error');
+                }
+            } catch (error) {
+                console.error('Request join error:', error);
+                showUIMessage('Network error or server unavailable. Failed to submit request.', 'error');
+            }
+        }
+
+
+        // --- Sidebar Toggle for Mobile ---
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('sidebar-hidden');
+            sidebar.classList.toggle('sidebar-visible');
+            document.body.classList.toggle('sidebar-open'); // Toggle class on body
         });
     </script>
 </body>

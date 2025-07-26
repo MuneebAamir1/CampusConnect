@@ -98,8 +98,6 @@ const authenticateAdmin = (req, res, next) => {
 };
 
 
-// Enable CORS for all Express routes (important for frontend communication)
-const cors = require('cors');
 // ... other imports
 
 // Define your Vercel frontend URL
